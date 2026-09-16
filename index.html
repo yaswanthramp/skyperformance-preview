@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<!--
+  skyPerformance wireframe, built on the Radix-Design System canonical shell.
+  Source: data.js (sample data), core.js (shell, router, scoping, overlays),
+  views-*.js (screens), sp.css (project extensions on top of app.css).
+  Shell structure is the DS template: banner, header, sidebar, content with
+  breadcrumbs and footer.
+-->
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>skyPerformance · UX wireframe</title>
+  <meta name="description" content="skyPerformance: frontline coaching and performance documentation. Interactive UX wireframe." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='3.3' cy='12.6' r='2.1' fill='%23FFB31C'/%3E%3Cpath d='M0.6 21v-1.6a2.7 2.7 0 0 1 5.4 0V21z' fill='%23FFB31C'/%3E%3Crect x='8' y='12' width='4.2' height='9' rx='0.5' fill='%23202020'/%3E%3Crect x='14.2' y='7.4' width='4.2' height='13.6' rx='0.5' fill='%23202020'/%3E%3Cpath d='M16.3 1.8l4.3 5.6h-8.6z' fill='%23202020'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./dashboard.css" />
+  <link rel="stylesheet" href="./app.css" />
+  <link rel="stylesheet" href="./sp.css" />
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ============ ANNOUNCEMENT BANNER ============ -->
+    <div class="app-banner" id="demoBanner">
+      <span class="ab-icon" data-ic="info"></span>
+      <span>UX wireframe. Fictional operator, fictional people, fabricated numbers. Use <b>View as</b> in the header to change role: every tab, row and button is live.</span>
+      <span class="ab-spacer"></span>
+      <button class="ab-close" aria-label="Dismiss" data-act="dismiss-banner"><span data-ic="x"></span></button>
+    </div>
+
+    <!-- ============ HEADER ============ -->
+    <header class="app-header">
+      <div class="brand">
+        <button class="icon-btn mobile-only" aria-label="Open menu" data-act="open-nav"><span data-ic="panel-left"></span></button>
+        <a class="brand-link" href="#/home" aria-label="skyPerformance home">
+          <span id="brandMark" class="brand-mark"></span>
+          <span>skyPerformance<span class="brand-tm">TM</span></span>
+        </a>
+        <span class="brand-scope desktop-only" id="brandScope"></span>
+      </div>
+      <div class="search header-search desktop-only" id="globalSearch">
+        <span class="search-icon" data-ic="search"></span>
+        <input class="input" id="globalSearchInput" placeholder="Search people, forms, cases and action items" autocomplete="off" aria-label="Search people, forms, cases and action items" />
+        <div class="popover search-pop pop" id="searchPop" hidden></div>
+      </div>
+      <div class="header-right">
+        <span class="pop-anchor">
+          <button class="dropdown role-switch" id="roleBtn" aria-haspopup="menu" aria-expanded="false" data-act="toggle-pop" data-pop="rolePop">
+            <span class="rs-label desktop-only">View as</span>
+            <span class="rs-value" id="roleValue">Department manager</span>
+            <span class="dropdown-chevron" data-ic="chevrons-up-down"></span>
+          </button>
+          <div class="dropdown-menu pop role-menu" id="rolePop" role="menu" hidden></div>
+        </span>
+        <button class="icon-btn mobile-only" aria-label="Search" data-act="mobile-search"><span data-ic="search"></span></button>
+        <span class="pop-anchor">
+          <button class="icon-btn" aria-label="Notifications" data-act="toggle-pop" data-pop="notifPop"><span data-ic="bell"></span><span class="ic-badge" id="notifCount">0</span></button>
+          <div class="popover pop notif-pop" id="notifPop" hidden></div>
+        </span>
+        <button class="icon-btn desktop-only" aria-label="Toggle theme" data-act="theme"><span data-ic="moon"></span></button>
+        <span class="divider-v desktop-only"></span>
+        <span class="pop-anchor">
+          <button class="profile-btn" aria-expanded="false" data-act="toggle-pop" data-pop="profilePop" id="profileBtn"></button>
+          <div class="popover profile-menu pop" id="profilePop" hidden></div>
+        </span>
+      </div>
+    </header>
+
+    <!-- ============ SIDEBAR ============ -->
+    <nav class="app-sidebar" aria-label="Primary" id="sidebar"></nav>
+    <div class="nav-scrim" id="navScrim" hidden data-act="close-nav"></div>
+
+    <!-- ============ CONTENT ============ -->
+    <main class="app-content" id="content"></main>
+
+    <!-- ============ MOBILE BOTTOM BAR ============ -->
+    <nav class="bottom-nav" aria-label="Mobile" id="bottomNav"></nav>
+  </div>
+
+  <div id="overlayHost"></div>
+  <div class="toast-host" id="toastHost" aria-live="polite"></div>
+
+  <script src="./icons.js"></script>
+  <script src="./data.js"></script>
+  <script src="./core.js"></script>
+  <script src="./views-home.js"></script>
+  <script src="./views-coaching.js"></script>
+  <script src="./views-form.js"></script>
+  <script src="./views-visits.js"></script>
+  <script src="./views-actions.js"></script>
+  <script src="./views-cases.js"></script>
+  <script src="./views-people.js"></script>
+  <script src="./views-docs.js"></script>
+  <script src="./views-reports.js"></script>
+  <script src="./views-settings.js"></script>
+  <script>APP.start();</script>
+</body>
+</html>
