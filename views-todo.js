@@ -1,0 +1,251 @@
+/* skyPerformance: the To-Do list. Four tabs, matching how the reference product
+   works: touch points, trends, action items, cross group. Everything a manager
+   owes is on this one screen. The Employee role gets the same file read back to
+   them under My coaching. */
+(function () {
+  var D = window.SP, APP = window.APP, ic = APP.ic, esc = APP.esc, P = APP.P, S = APP.S;
+
+  function counts() {
+    var t = APP.tasks(), c = { Overdue: 0, Open: 0, Draft: 0, Completed: 0 };
+    t.forEach(function (x) { c[x.status] = (c[x.status] || 0) + 1; });
+    return c;
+  }
+  function tabsFor(active) {
+    var base = APP.is('employee') ? '#/coaching' : '#/todo';
+    if (APP.is('employee')) return APP.tabs([
+      ['mine', 'Coaching about me', base, APP.forms().length],
+      ['actions', 'What I agreed to', base + '/actions', APP.actions().filter(function (a) { return a.status !== 'Closed'; }).length]
+    ], active);
+    var t = APP.tasks();
+    return APP.tabs([
+      ['points', 'Touch points', base, t.filter(function (x) { return x.status !== 'Completed'; }).length],
+      ['trends', 'Coaching trends', base + '/trends', 3],
+      ['actions', 'Action items', base + '/actions', APP.actions().filter(function (a) { return a.status !== 'Closed'; }).length],
+      ['crossgroup', 'Cross group', base + '/crossgroup', APP.crossFor().filter(function (x) { return x.state === 'Sent to manager'; }).length]
+    ], active);
+  }
+
+  /* ---------------- touch points ---------------- */
+  function points() {
+    var f = S.f, status = f.tstatus || 'All open', type = f.ttype || 'All', owner = f.towner || 'Everyone';
+    var c = counts();
+    var list = APP.tasks().filter(function (t) {
+      if (status === 'All open' && t.status === 'Completed') return false;
+      if (status !== 'All open' && status !== 'All' && t.status !== status) return false;
+      if (type !== 'All' && t.ft !== type) return false;
+      if (owner === 'Mine' && t.owner !== APP.me().id) return false;
+      return true;
+    });
+    return '<div class="summary-strip">' +
+      ['Overdue', 'Open', 'Draft', 'Completed'].map(function (k) {
+        return '<button class="ss-item' + (status === k ? ' is-on' : '') + '" data-act="task-filter" data-val="' + k + '"><span class="ss-num">' + (c[k] || 0) + '</span><span class="ss-label">' + k + '</span></button>';
+      }).join('') + '</div>' +
+      '<div class="filter-bar">' +
+      APP.dd('tstatus', [['All open', 'All open'], ['Overdue', 'Overdue'], ['Open', 'Open'], ['Draft', 'Draft'], ['Completed', 'Completed'], ['All', 'Everything']], status) +
+      APP.dd('ttype', [['All', 'All form types']].concat(D.FORM_TYPES.filter(function (t) { return t.fam !== 'ops'; }).map(function (t) { return [t.id, t.name]; })), type) +
+      APP.dd('towner', [['Everyone', 'Every manager'], ['Mine', 'Assigned to me']], owner) +
+      '<span class="fb-spacer"></span>' +
+      APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="The to-do list as CSV"', 'is-sm') +
+      APP.btn('Start a form', 'btn-solid', 'circle-play', 'data-act="start-form"', 'is-sm') +
+      '</div>' +
+      '<section class="card flush-card">' +
+      APP.table([{ t: '', w: '84px' }, { t: 'Employee', w: '18%' }, { t: 'Target', w: '15%' }, { t: 'Coaching needed', w: '24%' }, { t: 'Last activity', w: '13%' }, { t: 'Due', w: '9%' }, { t: 'Status', w: '9%' }],
+        list.map(function (t) {
+          var e = P(t.emp), ft = D.formType(t.ft);
+          return { cells: [
+            t.status === 'Completed'
+              ? APP.btn('Record', 'btn-surface', null, 'data-act="open-form" data-id="' + t.formId + '"', 'is-sm')
+              : APP.btn(t.status === 'Draft' ? 'Resume' : 'Start', 'btn-solid', null, 'data-act="run-form" data-task="' + t.id + '"', 'is-sm'),
+            APP.personLine(e, esc(e.title), 28),
+            esc(t.target) + '<span class="cell-sub">' + esc(t.id) + '</span>',
+            '<span class="row-gap">' + ic(ft.ic, 16) + '<span class="cell-strong">' + esc(t.topic) + '</span></span>' +
+              (t.why ? '<span class="cell-sub">' + esc(t.why) + '</span>' : '<span class="cell-sub">Opened ' + esc(t.opened) + ' by ' + esc(t.rule) + '</span>'),
+            (t.last && t.last !== '-' ? esc(t.last) + '<span class="cell-sub">by ' + esc(P(t.lastBy).name.split(' ')[0]) + '</span>' : '<span class="mini-note">None</span>'),
+            esc(t.due),
+            APP.statusBadge(t.status)
+          ] };
+        }), { empty: 'No touch points match this filter.' }) +
+      '</section>' +
+      APP.callout('The list is generated, not curated. A manager cannot add or delete a touch point by hand: they change the rule that made it, and the change applies to everyone. That is what makes completion a fair number to be measured on.' + (APP.isHR() ? ' <a href="#/settings/rules">Open the rules</a>.' : ''), 'is-info', 'sliders-horizontal');
+  }
+
+  /* ---------------- trends ---------------- */
+  function trends() {
+    var rows = [
+      { emp: 'dana', topic: 'Recording and accuracy', n: 4, span: '22 Jul to 12 Sep 2026', state: 'Escalated', kase: 'PC-3391' },
+      { emp: 'trevor', topic: 'Procedure adherence', n: 2, span: '18 Aug to 9 Sep 2026', state: 'Watch', kase: null },
+      { emp: 'nadia', topic: 'Output per shift', n: 2, span: '1 Sep to 14 Sep 2026', state: 'Watch', kase: null }
+    ].filter(function (r) { return APP.inScope(r.emp); });
+    return '<div class="split-2">' +
+      '<section class="card">' + APP.panelHead('Repeat topics', 'The same standard coached more than twice in ninety days is a trend, not a conversation.') +
+      APP.table([{ t: 'Employee' }, { t: 'Topic' }, { t: 'Times', num: true }, { t: 'Window' }, { t: 'State' }, { t: '' }],
+        rows.map(function (r) {
+          return { cells: [APP.personLine(r.emp, null, 28), esc(r.topic), String(r.n), esc(r.span),
+            APP.badge(r.state, r.state === 'Escalated' ? 'is-danger' : 'is-warning'),
+            r.kase ? APP.btn('Case ' + r.kase, 'btn-surface', 'gavel', 'data-act="goto" data-href="#/cases/' + r.kase + '"', 'is-sm')
+              : (APP.canCase() ? APP.btn('Open a case', 'btn-solid', 'gavel', 'data-act="start-case" data-emp="' + r.emp + '"', 'is-sm') : '')] };
+        }), { empty: 'No repeat topics in your scope.' }) +
+      '<p class="mini-note" style="margin-top:var(--space-4)">Escalation is a suggestion, never automatic. A case still needs a person to open it, and the prior forms attach themselves as documentation when they do.</p>' +
+      '</section>' +
+      '<section class="card">' + APP.panelHead('Topics across the team', 'What the coaching is actually about, this cycle.') +
+      APP.bars([['Recording and accuracy', 14], ['Schedule adherence', 11], ['Procedure adherence', 7], ['Customer handling', 6], ['Output', 5], ['Recognition', 9]]) +
+      '<p class="mini-note" style="margin-top:var(--space-4)">Recognition is counted here on purpose. A team coached only on failures stops reading the record.</p>' +
+      '</section></div>' +
+      '<section class="card">' + APP.panelHead('What the engine watches for', 'Four patterns, and what each one opens.') +
+      APP.table([{ t: 'Pattern' }, { t: 'Window' }, { t: 'What it opens' }, { t: 'State' }], [
+        ['Same topic coached three or more times', '90 days', 'Suggests a performance case to the manager', APP.statusBadge('Active')],
+        ['Two or more No scores on one form', 'Single form', 'Marks the form Needs improvement and requires an action item', APP.statusBadge('Active')],
+        ['Action item overdue twice', '60 days', 'Carries the item onto the next form automatically', APP.statusBadge('Active')],
+        ['Manager completion below 75%', 'Monthly', 'Opens a manager coaching review on the manager', APP.statusBadge('Active')]
+      ].map(function (r) { return { cells: r }; })) + '</section>';
+  }
+
+  /* ---------------- action items ---------------- */
+  function actionRow(a) {
+    var late = a.status === 'Overdue';
+    return '<div class="wq-row"><span class="wq-ic' + (late ? ' is-late' : a.status === 'Closed' ? ' is-good' : '') + '">' + ic(late ? 'triangle-alert' : a.status === 'Closed' ? 'check' : 'list-checks', 16) + '</span>' +
+      '<div class="wq-main"><span class="wq-t">' + esc(a.t) + '</span>' +
+      '<span class="wq-s">' + esc(a.id) + ' · owner ' + esc(P(a.owner).name) + ' · from ' + esc(a.from) + (a.carried ? ' · carried forward' : '') + '</span></div>' +
+      '<div class="wq-right">' + APP.statusBadge(a.status) + '<span class="mini-note">Due ' + esc(a.due) + '</span>' +
+      APP.btn('Open', 'btn-surface', null, 'data-act="open-action" data-id="' + a.id + '"', 'is-sm') + '</div></div>';
+  }
+  APP.actionRow = actionRow;
+
+  function actions() {
+    var f = S.f.astatus || 'Open';
+    var list = APP.actions().filter(function (a) { return f === 'All' ? true : f === 'Open' ? a.status !== 'Closed' : a.status === f; });
+    var carried = APP.actions().filter(function (a) { return a.carried; });
+    return APP.callout('An action item lives on two lists at once: the owner to-do list, and the next form for that person. It stays on both until someone closes it, which is what stops a follow up from quietly evaporating.', 'is-info', 'list-checks') +
+      (carried.length ? APP.callout('<b>' + carried.length + ' item has been carried forward.</b> Carried means it was still open when the next form ran, so it printed on that form too. A second carry is what the trend engine watches for.', 'is-warning', 'history') : '') +
+      '<div class="filter-bar">' + APP.dd('astatus', [['Open', 'Open and overdue'], ['Overdue', 'Overdue only'], ['Closed', 'Closed'], ['All', 'Everything']], f) +
+      '<span class="fb-spacer"></span>' + APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="The action item register"', 'is-sm') + '</div>' +
+      '<section class="card flush-card">' +
+      APP.table([{ t: 'Action item' }, { t: 'Owner' }, { t: 'Raised by' }, { t: 'From' }, { t: 'Due' }, { t: 'Status' }, { t: '' }],
+        list.map(function (a) {
+          return { cells: [
+            '<span class="cell-strong">' + esc(a.t) + '</span><span class="cell-sub">' + esc(a.id) + (a.carried ? ' · carried forward' : '') + (a.notes.length ? ' · ' + a.notes.length + ' note' + (a.notes.length > 1 ? 's' : '') : '') + '</span>',
+            APP.personLine(a.owner, null, 28), APP.personLine(a.by, null, 28),
+            '<button class="rowlink" data-act="' + (a.from.indexOf('LR') === 0 ? 'open-review" data-id="' + a.from : 'open-form" data-id="' + a.from) + '">' + esc(a.from) + '</button>',
+            esc(a.due) + (a.closedOn ? '<span class="cell-sub">closed ' + esc(a.closedOn) + '</span>' : ''),
+            APP.statusBadge(a.status),
+            APP.btn('Open', 'btn-surface', null, 'data-act="open-action" data-id="' + a.id + '"', 'is-sm')
+          ] };
+        }), { empty: 'Nothing here.' }) + '</section>';
+  }
+
+  /* ---------------- cross group ---------------- */
+  function crossgroup() {
+    var mine = APP.crossFor();
+    return APP.callout('These came from outside your reporting line, usually Quality or Compliance. Accepting one opens a normal coaching form with the context filled in. Declining one requires a reason, which the sender reads. The sender never sees the resulting form.', 'is-info', 'shield') +
+      '<section class="card flush-card">' +
+      APP.table([{ t: 'Suggestion' }, { t: 'Employee' }, { t: 'Sent to' }, { t: 'Raised' }, { t: 'State' }, { t: '' }],
+        mine.map(function (x) {
+          var e = P(x.emp);
+          return { cells: [
+            '<span class="cell-strong">' + esc(x.topic) + '</span><span class="cell-sub">' + esc(x.id) + ' · by ' + esc(P(x.by).name) + ', ' + esc(P(x.by).dept) + '</span>',
+            APP.personLine(e, esc(D.locName(e.loc)), 28), APP.personLine(x.leader, null, 28), esc(x.on),
+            APP.statusBadge(x.state), APP.btn('Open', 'btn-surface', null, 'data-act="open-cross" data-id="' + x.id + '"', 'is-sm')
+          ] };
+        }), { empty: 'No cross group suggestions in your scope.' }) + '</section>';
+  }
+
+  /* ---------------- employee view of their own file ---------------- */
+  function mine() {
+    var forms = APP.forms();
+    return APP.callout('This is every coaching record about you, in the words your manager wrote. You can read each one in full, including the scores. If something looks wrong, say so in the acknowledgement, which is kept with the record.', 'is-info', 'info') +
+      '<section class="card flush-card">' +
+      APP.table([{ t: 'Date' }, { t: 'Form' }, { t: 'By' }, { t: 'Outcome' }, { t: 'Summary' }, { t: '' }],
+        forms.map(function (f) {
+          var ft = D.formType(f.ft);
+          return { cells: [esc(f.date), '<span class="row-gap">' + ic(ft.ic, 16) + esc(ft.name) + '</span>', APP.personLine(f.by, null, 28), APP.statusBadge(f.outcome),
+            '<span class="mini-note">' + esc(f.summary.slice(0, 90)) + '...</span>',
+            APP.btn('Read', 'btn-surface', null, 'data-act="open-form" data-id="' + f.id + '"', 'is-sm')] };
+        }), { empty: 'Nothing on your record yet.' }) + '</section>';
+  }
+
+  function page(tab) {
+    var emp = APP.is('employee');
+    var body = emp
+      ? (tab === 'actions' ? actions() : mine())
+      : (tab === 'trends' ? trends() : tab === 'actions' ? actions() : tab === 'crossgroup' ? crossgroup() : points());
+    return APP.page({
+      crumbs: [['Home', '#/home'], [emp ? 'My coaching' : 'To-do list', emp ? '#/coaching' : '#/todo']],
+      title: emp ? 'My coaching' : 'To-do list',
+      desc: emp ? 'Every documented conversation about your work, and what you agreed to.'
+                : 'The system decides who to coach, on what topic, by when. You decide how.',
+      tabs: tabsFor(tab), body: body
+    });
+  }
+  APP.VIEWS.todo = function (r) { return r[1] === 'run' ? APP.formRunner() : page(r[1] || 'points'); };
+  APP.VIEWS.coaching = function (r) { return r[1] === 'run' ? APP.formRunner() : page(r[1] || (APP.is('employee') ? 'mine' : 'points')); };
+
+  /* ---------------- actions ---------------- */
+  var A = APP.ACT;
+  A['task-filter'] = function (el) { S.f.tstatus = el.getAttribute('data-val'); APP.rerender(); };
+  A['open-action'] = function (el) {
+    var a = D.action(el.getAttribute('data-id'));
+    var canClose = a.status !== 'Closed' && (a.owner === APP.me().id || !APP.is('employee'));
+    APP.dialog({
+      title: a.t, sub: a.id + ' · raised by ' + P(a.by).name + ' on ' + a.from,
+      body: APP.dataList([
+        ['Owner', APP.personLine(a.owner, null, 28, false)],
+        ['Due', esc(a.due)],
+        ['Status', APP.statusBadge(a.status)],
+        ['Source', '<button class="rowlink" data-act="' + (a.from.indexOf('LR') === 0 ? 'open-review" data-id="' + a.from : 'open-form" data-id="' + a.from) + '">' + esc(a.from) + '</button>'],
+        ['Carried forward', a.carried ? 'Yes, it printed on the next form for this person' : 'No']
+      ]) +
+        '<h3 class="section-label">Follow up notes</h3>' +
+        (a.notes.length ? '<div class="wq">' + a.notes.map(function (n) {
+          return '<div class="wq-row"><span class="wq-ic">' + ic('message-square-text', 16) + '</span><div class="wq-main"><span class="wq-t">' + esc(n.t) + '</span><span class="wq-s">' + esc(P(n.by).name) + ' · ' + esc(n.on) + '</span></div></div>';
+        }).join('') + '</div>' : '<p class="mini-note">No notes yet.</p>') +
+        (canClose ? APP.field('Add a note', '<textarea class="textarea" data-input="ai-note" placeholder="What you saw when you checked."></textarea>', 'Notes are kept with the item and appear in the employee file export.') : ''),
+      footer: canClose
+        ? APP.btn('Add note', 'btn-surface', 'plus', 'data-act="note-action" data-id="' + a.id + '"') + APP.btn('Close this item', 'btn-solid', 'check', 'data-act="close-action-d" data-id="' + a.id + '"')
+        : APP.btn('Close', 'btn-surface', null, 'data-act="close-overlay"')
+    });
+  };
+  APP.INPUT['ai-note'] = function (el) { S.f.aiNote = el.value; };
+  A['note-action'] = function (el) {
+    var a = D.action(el.getAttribute('data-id'));
+    if (!S.f.aiNote) { APP.toast('Nothing to add', 'Write a note first.', 'warning'); return; }
+    a.notes.push({ on: D.TODAY, by: APP.me().id, t: S.f.aiNote }); S.f.aiNote = '';
+    APP.closeOverlay(); APP.rerender(); APP.toast('Note added', 'Kept with ' + a.id + '.');
+  };
+  A['close-action-d'] = function (el) {
+    var a = D.action(el.getAttribute('data-id'));
+    a.status = 'Closed'; a.closedOn = D.TODAY;
+    APP.closeOverlay(); APP.rerender(); APP.toast('Item closed', a.id + ' will stop printing on forms for ' + P(a.owner).name.split(' ')[0] + '.');
+  };
+  A['open-cross'] = function (el) {
+    var x = D.CROSS.filter(function (c) { return c.id === el.getAttribute('data-id'); })[0];
+    var e = P(x.emp), canAct = x.leader === APP.me().id && x.state === 'Sent to manager';
+    APP.dialog({
+      title: 'Cross group suggestion', sub: x.id + ' · raised by ' + P(x.by).name + ', ' + P(x.by).dept,
+      body: APP.dataList([
+        ['Employee', APP.personLine(e, esc(e.title) + ', ' + esc(D.locName(e.loc)), 28, false)],
+        ['Their manager', APP.personLine(x.leader, null, 28, false)],
+        ['What was seen', esc(x.topic)],
+        ['Raised on', esc(x.on)],
+        ['Suggested form', esc(D.formType(x.suggest).name)],
+        ['State', APP.statusBadge(x.state)]
+      ].concat(x.why ? [['Reason declined', esc(x.why)]] : [])) +
+        APP.callout('The sender never sees the resulting form. They see only whether it was accepted or declined, and the reason if it was declined.', 'is-info', 'eye-off'),
+      footer: canAct
+        ? APP.btn('Decline with a reason', 'btn-surface', null, 'data-act="decline-cross" data-id="' + x.id + '"') + APP.btn('Accept and run the form', 'btn-solid', 'circle-play', 'data-act="run-form" data-ft="' + x.suggest + '" data-emp="' + x.emp + '"')
+        : APP.btn('Close', 'btn-surface', null, 'data-act="close-overlay"')
+    });
+  };
+  A['decline-cross'] = function (el) {
+    var id = el.getAttribute('data-id'); APP.closeOverlay();
+    APP.dialog({
+      title: 'Decline this suggestion', sub: 'A reason is required. The sender reads it.',
+      body: APP.field('Reason', '<textarea class="textarea" placeholder="Already coached on 18 Aug, form FM-20850."></textarea>', 'Kept with the suggestion, not on the employee record.', true),
+      footer: APP.btn('Cancel', 'btn-surface', null, 'data-act="close-overlay"') + APP.btn('Send decline', 'btn-solid', 'send', 'data-act="cross-declined" data-id="' + id + '"')
+    });
+  };
+  A['cross-declined'] = function (el) {
+    var x = D.CROSS.filter(function (c) { return c.id === el.getAttribute('data-id'); })[0];
+    x.state = 'Declined'; x.why = 'Declined in this session for demonstration.';
+    APP.closeAll(); APP.rerender(); APP.toast('Decline sent', P(x.by).name + ' will see the reason. Nothing was written to the employee record.', 'info');
+  };
+})();

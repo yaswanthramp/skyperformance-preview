@@ -5,8 +5,10 @@
    ============================================================ */
 
 /* ---- header: hierarchy path next to the wordmark ---- */
-.brand-scope { display: inline-flex; align-items: center; gap: var(--space-1); margin-left: var(--space-3); padding: 2px var(--space-2); border-radius: var(--radius-2); background: var(--gray-3); color: var(--fg-low); font-size: var(--fs-1); font-weight: var(--weight-medium); white-space: nowrap; max-width: 320px; overflow: hidden; }
-.brand-scope span { overflow: hidden; text-overflow: ellipsis; }
+.hier-switch { display: inline-flex; align-items: center; gap: var(--space-1); margin-left: var(--space-3); padding: 3px var(--space-2); border: 0; border-radius: var(--radius-2); background: var(--gray-3); color: var(--fg-low); font: inherit; font-size: var(--fs-1); font-weight: var(--weight-medium); white-space: nowrap; max-width: 330px; overflow: hidden; cursor: pointer; }
+.hier-switch:hover { background: var(--gray-4); color: var(--fg-high); }
+.hier-switch .hs-text { overflow: hidden; text-overflow: ellipsis; }
+.hier-switch svg { flex: 0 0 auto; }
 .brand-mark { display: inline-flex; }
 .role-switch .rs-label { color: var(--fg-subtle); font-size: var(--fs-1); margin-right: var(--space-1); }
 .role-switch .rs-value { font-weight: var(--weight-medium); color: var(--fg-high); }
@@ -24,13 +26,6 @@
 .nav-help:hover { background: var(--gray-3); color: var(--fg-high); }
 .nav-help .nav-icon { color: var(--fg-subtle); flex: 0 0 auto; }
 
-/* ---- scope strip under the page header (E1) ---- */
-.scope-strip { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-2) var(--space-3); margin-bottom: var(--space-4); border-radius: var(--radius-3); background: var(--gray-2); box-shadow: inset 0 0 0 1px var(--border-subtle); font-size: var(--fs-1); color: var(--fg-low); }
-.scope-strip > svg { color: var(--fg-subtle); flex: 0 0 auto; }
-.ss-path { font-weight: var(--weight-medium); color: var(--fg-high); }
-.ss-sep { width: 1px; height: 14px; background: var(--border-ui); }
-.ss-note { color: var(--fg-low); }
-.ss-spacer { flex: 1 1 auto; }
 
 /* ---- hierarchy tree dialog ---- */
 .tree-wrap { margin-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
@@ -286,4 +281,104 @@
 
 /* Below 1200px the header path competes with the search field, and the scope
    strip under every page header already carries it. */
-@media (max-width: 1199px) { .brand-scope { display: none; } }
+@media (max-width: 1199px) { .hier-switch { display: none; } }
+
+/* ============================================================
+   Org chart. A real chart: centred nodes, connector lines drawn
+   with pseudo elements, expand and collapse per node.
+   ============================================================ */
+/* Connector lines carry meaning in an org chart, so they are held to the 3:1
+   non-text contrast floor. gray-7 measures 1.57:1 on the panel and disappears. */
+:root, :root[data-theme="light"] { --oc-line: var(--gray-9); }
+:root[data-theme="dark"] { --oc-line: var(--gray-9); }
+.org-layout { display: grid; grid-template-columns: 1fr 320px; gap: var(--space-5); align-items: start; }
+@media (max-width: 1280px) { .org-layout { grid-template-columns: 1fr; } }
+.oc-wrap { padding: 0; overflow: hidden; }
+.oc-scroll { overflow: auto; padding: var(--space-6) var(--space-5); max-height: 620px; }
+.oc-tree, .oc-children { display: flex; list-style: none; margin: 0; padding: 0; justify-content: center; }
+.oc-tree { padding-top: 0; }
+.oc-li { position: relative; padding: var(--space-5) var(--space-2) 0; display: flex; flex-direction: column; align-items: center; }
+.oc-tree > .oc-li { padding-top: 0; }
+/* the two half lines that join siblings, and the drop into each child */
+.oc-li::before, .oc-li::after { content: ""; position: absolute; top: 0; width: 50%; height: var(--space-5); border-top: var(--stroke-thin) solid var(--oc-line); }
+.oc-li::before { right: 50%; }
+.oc-li::after { left: 50%; }
+.oc-li:only-child::before, .oc-li:only-child::after { display: none; }
+.oc-li:first-child::before, .oc-li:last-child::after { border-top: 0; }
+.oc-li:first-child::after { border-radius: 6px 0 0 0; }
+.oc-li:last-child::before { border-radius: 0 6px 0 0; }
+.oc-li > .oc-node::before { content: ""; position: absolute; top: calc(var(--space-5) * -1); left: 50%; width: 0; height: var(--space-5); border-left: var(--stroke-thin) solid var(--oc-line); }
+.oc-tree > .oc-li > .oc-node::before { display: none; }
+/* the stem that drops from a node to its children */
+.oc-children { position: relative; padding-top: var(--space-5); }
+.oc-children::before { content: ""; position: absolute; top: 0; left: 50%; width: 0; height: var(--space-5); border-left: var(--stroke-thin) solid var(--oc-line); }
+
+.oc-node { position: relative; display: flex; flex-direction: column; align-items: stretch; }
+.oc-card { display: flex; align-items: center; gap: var(--space-3); width: 228px; padding: var(--space-3); border: 0; border-radius: var(--radius-4); background: var(--color-panel-solid); box-shadow: inset 0 0 0 1px var(--border-subtle); font: inherit; text-align: left; cursor: pointer; transition: box-shadow .12s ease-out, background-color .12s ease-out; }
+.oc-card:hover { box-shadow: inset 0 0 0 1px var(--border-strong); background: var(--gray-2); }
+.oc-node.is-sel .oc-card { box-shadow: inset 0 0 0 2px var(--accent-9); background: var(--accent-2); }
+.oc-node.is-me .oc-card { box-shadow: inset 0 0 0 1px var(--accent-8); }
+.oc-node.is-me.is-sel .oc-card { box-shadow: inset 0 0 0 2px var(--accent-9); }
+.oc-node.is-out .oc-card { opacity: .62; }
+.oc-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.oc-name { font-size: var(--fs-2); font-weight: var(--weight-medium); color: var(--fg-high); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-you { font-size: var(--fs-1); font-weight: var(--weight-regular); color: var(--accent-11); }
+.oc-title { font-size: var(--fs-1); color: var(--fg-low); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-where { font-size: var(--fs-1); color: var(--fg-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oc-flag { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: var(--radius-full); font-size: var(--fs-1); font-weight: var(--weight-bold); flex: 0 0 auto; }
+.oc-flag.is-danger { background: var(--red-4); color: var(--red-12); }
+.oc-flag.is-warn { background: var(--orange-4); color: var(--orange-12); }
+.oc-toggle { position: absolute; left: 50%; bottom: -13px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 2px; height: 22px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-full); background: var(--gray-3); box-shadow: inset 0 0 0 1px var(--border-ui); color: var(--fg-low); font: inherit; font-size: var(--fs-1); font-weight: var(--weight-medium); cursor: pointer; z-index: 1; }
+.oc-toggle:hover { background: var(--accent-3); color: var(--accent-11); box-shadow: inset 0 0 0 1px var(--accent-8); }
+.oc-rail-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+.oc-line { display: flex; flex-direction: column; gap: 2px; }
+.oc-line-row { display: flex; align-items: center; gap: var(--space-2); border: 0; background: none; font: inherit; text-align: left; cursor: pointer; padding: var(--space-1) var(--space-2); border-radius: var(--radius-2); color: inherit; }
+.oc-line-row:hover { background: var(--gray-3); }
+.oc-line-row.is-on { background: var(--accent-3); }
+.oc-line-tick { color: var(--fg-subtle); display: inline-flex; flex: 0 0 auto; }
+.oc-line-name { display: flex; flex-direction: column; font-size: var(--fs-2); color: var(--fg-high); min-width: 0; }
+.oc-line-title { font-size: var(--fs-1); color: var(--fg-low); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- start a form dialog ---- */
+.sf-block { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-4); }
+.sf-radios { display: flex; flex-direction: column; gap: var(--space-2); }
+.sf-radio { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border: 0; border-radius: var(--radius-3); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--border-ui); font: inherit; text-align: left; cursor: pointer; }
+.sf-radio:hover { background: var(--gray-2); }
+.sf-radio.is-on { background: var(--accent-2); box-shadow: inset 0 0 0 1px var(--accent-8); }
+.sf-dot { width: 18px; height: 18px; border-radius: var(--radius-full); box-shadow: inset 0 0 0 1px var(--border-ui); flex: 0 0 auto; margin-top: 1px; background: var(--color-surface); }
+.sf-radio.is-on .sf-dot { background: var(--accent-9); box-shadow: inset 0 0 0 1px var(--accent-9), inset 0 0 0 4px var(--color-surface); }
+.sf-rt { display: flex; flex-direction: column; }
+.sf-rn { font-size: var(--fs-2); font-weight: var(--weight-medium); color: var(--fg-high); }
+.sf-rs { font-size: var(--fs-1); color: var(--fg-low); }
+
+/* ---- runner rail timer, matching the reference ---- */
+.rr-timer { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-3); background: var(--accent-3); color: var(--accent-11); font-size: var(--fs-1); font-weight: var(--weight-medium); margin-bottom: var(--space-3); }
+.rr-timer span:last-child { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--fg-high); }
+.rr-label { font-size: var(--fs-1); font-weight: var(--weight-medium); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-low); padding: 0 var(--space-3) var(--space-1); }
+.q-collapse > summary { gap: var(--space-2); }
+.q-collapse .q-row:first-of-type { border-top: 0; }
+
+/* ---- case groups, matching the reference's Pending / Open / Closed ---- */
+.case-group { margin-bottom: var(--space-4); }
+.cg-head { padding: var(--space-3) var(--space-4); font-size: var(--fs-1); font-weight: var(--weight-medium); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-low); background: var(--gray-2); border-bottom: var(--stroke-thin) solid var(--border-subtle); }
+.dropdown.is-sm { height: 26px; font-size: var(--fs-1); padding: 0 var(--space-2); }
+
+/* ---- wizard step chips ---- */
+.wiz-text { display: flex; flex-direction: column; min-width: 0; }
+.wiz-s { font-size: var(--fs-1); color: var(--fg-low); }
+.wiz-step.is-active .wiz-s { color: var(--accent-11); }
+
+/* The DS .panel-head is a flex row, but its title column has no flex basis, so a
+   long title collapses to a sliver whenever the right slot holds a button. */
+.panel-head > div:first-child { flex: 1 1 auto; min-width: 0; }
+.panel-head .ph-right { flex: 0 0 auto; }
+@media (max-width: 720px) { .panel-head { flex-wrap: wrap; } .panel-head .ph-right { width: 100%; } }
+.oc-scroll > .oc-tree { min-width: max-content; margin: 0 auto; }
+
+/* Inside a table cell an icon plus a long label must shrink the label, not wrap
+   the whole label onto its own line under the icon. */
+.table .row-gap { flex-wrap: nowrap; align-items: flex-start; }
+.table .row-gap > svg { margin-top: 2px; }
+.table .row-gap > span { min-width: 0; }
+/* gray-2 alone is too close to the card behind it, so the strip gets a ring. */
+.summary-strip { box-shadow: inset 0 0 0 1px var(--border-subtle); }

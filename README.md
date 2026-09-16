@@ -1,28 +1,42 @@
 # skyPerformance, UX wireframe
 
-Interactive UX wireframe for **skyPerformance**: frontline coaching and performance
-documentation for multi-community senior living operators.
+Interactive UX wireframe for **skyPerformance**: coaching, documentation and progressive
+discipline for any multi-site employer.
 
 **Live: https://yaswanthramp.github.io/skyperformance-preview/**
 
-Use **View as** in the header to switch between the seven roles. Switching role
-re-scopes every screen. Every tab, table row, filter and button is live.
+Use **View as** in the header to switch between **Employee**, **Manager** and **HR**.
+Switching role re-scopes every screen. Every tab, table row, filter and button is live.
 
 Static files only: no build, no dependencies.
 
+## Five destinations, not fifteen
+
+- **Home** — dashboard, performance measures and reports, as three tabs.
+- **To-do list** — touch points the rules generated, coaching trends, action items and
+  cross group suggestions, as four tabs.
+- **Org chart** — the reporting line as the HRIS publishes it, drawn as a chart. Expand,
+  collapse, search, click anyone.
+- **Records** — every documented form and location review, plus deleted records and exports.
+- **Performance cases** — Pending, Open and Closed, with the five step wizard, the
+  generated letter, the approval chain and the audit trail.
+
 ## What to look at
 
-- **Trace the chain** on any dashboard: signal, task, form, case, approval, export.
-- **Coaching**: the generated to do list, trends, cross group suggestions, form catalogue.
-- **Run form** on any touch point: six sections, 2 / 1 / N/A scoring, carried forward
-  action items, duration and geo telemetry, attestation before submission.
-- **Site visits**: the eight section walkthrough with photos and section summaries.
-- **Performance cases**: the five step wizard, generated letter, approval chain, audit trail.
-- **Reports**: completion by hierarchy and leader, the signal layer, verbatims, exports.
-- **Configuration**: form types, task rules, integrity guardrails, retention.
+- **How the product works** on the Home dashboard: measure, task, form, case, approval,
+  export. Every step is a link.
+- **Start a form**: pick a level, a type and a person, then run the six section form with
+  2 / 1 / N/A scoring, carried forward action items, a duration timer, a location check
+  and an attestation before submission.
+- **Org chart**: records outside your reporting line stay closed, and those nodes are dimmed.
+
+## Industry neutral by design
+
+The hierarchy is Organization, Division, Location, Department, Employee. The measures are
+quality, output, customer satisfaction, schedule adherence, absence, safety, retention and
+training. Nothing in the product assumes a sector.
 
 ## Sample data
 
-Everything here is invented: the operator, the six communities, the thirty people, every
-metric and every quotation. No real employee record, customer or vendor appears anywhere
-in it.
+Northwind Group is a fictional company. Every person, location, number and quotation is
+invented. No real employee record, customer or vendor appears anywhere in it.

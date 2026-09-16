@@ -26,7 +26,7 @@
     <!-- ============ ANNOUNCEMENT BANNER ============ -->
     <div class="app-banner" id="demoBanner">
       <span class="ab-icon" data-ic="info"></span>
-      <span>UX wireframe. Fictional operator, fictional people, fabricated numbers. Use <b>View as</b> in the header to change role: every tab, row and button is live.</span>
+      <span>UX wireframe. Fictional company, fabricated numbers. Use <b>View as</b> in the header to switch between Employee, Manager and HR: every tab, row and button is live.</span>
       <span class="ab-spacer"></span>
       <button class="ab-close" aria-label="Dismiss" data-act="dismiss-banner"><span data-ic="x"></span></button>
     </div>
@@ -39,7 +39,7 @@
           <span id="brandMark" class="brand-mark"></span>
           <span>skyPerformance<span class="brand-tm">TM</span></span>
         </a>
-        <span class="brand-scope desktop-only" id="brandScope"></span>
+        <button class="hier-switch desktop-only" id="hierBtn" data-act="open-hierarchy" title="Change what you are looking at"></button>
       </div>
       <div class="search header-search desktop-only" id="globalSearch">
         <span class="search-icon" data-ic="search"></span>
@@ -87,14 +87,11 @@
   <script src="./data.js"></script>
   <script src="./core.js"></script>
   <script src="./views-home.js"></script>
-  <script src="./views-coaching.js"></script>
+  <script src="./views-todo.js"></script>
   <script src="./views-form.js"></script>
-  <script src="./views-visits.js"></script>
-  <script src="./views-actions.js"></script>
+  <script src="./views-org.js"></script>
+  <script src="./views-records.js"></script>
   <script src="./views-cases.js"></script>
-  <script src="./views-people.js"></script>
-  <script src="./views-docs.js"></script>
-  <script src="./views-reports.js"></script>
   <script src="./views-settings.js"></script>
   <script>APP.start();</script>
 </body>
