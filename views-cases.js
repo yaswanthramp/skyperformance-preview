@@ -23,7 +23,9 @@
     if (who !== 'All') { pending = pending.filter(function (c) { return c.emp === who; }); open = open.filter(function (c) { return c.emp === who; }); closed = closed.filter(function (c) { return c.emp === who; }); }
     var people = APP.people().filter(function (p) { return all.some(function (c) { return c.emp === p.id; }); });
 
-    return (mine.length ? APP.callout('<b>' + mine.length + ' case is waiting on you.</b> Approving records your decision with your name and a timestamp. It cannot be changed afterwards, only superseded.', 'is-warning', 'gavel') : '') +
+    return APP.hint('Pending, open and closed. The step decides the letter, the approvers and the expiry.', 'gavel') +
+      (mine.length ? APP.callout('<b>' + mine.length + ' waiting on your approval.</b>', 'is-warning', 'gavel') : '') +
+      APP.glance([[pending.length, 'Pending', pending.length ? 'is-warn' : ''], [open.length, 'Open'], [open.filter(function (c) { return c.daysLeft != null && c.daysLeft < 60; }).length, 'Expiring in 60 days'], [closed.length, 'Closed']]) +
       '<div class="filter-bar">' +
       (APP.canCase() ? APP.btn('Initiate new case', 'btn-solid', 'plus', 'data-act="start-case"', 'is-sm') : '') +
       APP.dd('caseWho', [['All', 'Everyone in scope']].concat(people.map(function (p) { return [p.id, p.name]; })), who) +
@@ -45,7 +47,7 @@
           APP.personLine(c.emp, null, 28), esc(trackName(c.track)), esc(c.sub), esc(stepName(c.step)), esc(c.closed || '—'),
           APP.statusBadge(c.disposition || 'Closed')] };
       }), [{ t: 'Case' }, { t: 'Employee' }, { t: 'Track' }, { t: 'Subtrack' }, { t: 'Last step' }, { t: 'Date closed' }, { t: 'Disposition' }], 'No closed cases.') +
-      APP.callout('A case cannot activate without documented prior coaching, a completed letter where the step requires one, and every recorded approval. That constraint is the product.', 'is-info', 'shield-check');
+      APP.why('What stops a case activating', '<p>Three things, all required: documented prior coaching, a completed letter where the step needs one, and every approval recorded. A PIP closed as not met is the usual route in.</p>');
   }
 
   function actionMenu(c) {
@@ -91,7 +93,7 @@
         ['Step expiry', c.expires ? esc(c.expires) + (c.daysLeft != null ? ' · ' + c.daysLeft + ' days remaining' : '') : 'Not applicable'],
         ['Hierarchy path', '<span class="cell-id">' + esc(APP.hierPath(c.loc, e.dept)) + '</span>']
       ]) + '</section>' +
-      '<section class="card">' + APP.panelHead('The ladder', 'Track ' + esc(trackName(c.track)) + ', subtrack ' + esc(c.sub) + '. A step is reached, never skipped.') +
+      '<section class="card">' + APP.panelHead('The ladder', esc(trackName(c.track)) + ' · ' + esc(c.sub)) +
       '<div class="ladder">' + ladder + '</div>' +
       (prior.length ? '<p class="mini-note" style="margin-top:var(--space-4)">' + prior.length + ' other case on this record: ' + prior.map(function (x) { return '<button class="rowlink" data-act="goto" data-href="#/cases/' + x.id + '">' + esc(x.id) + '</button> (' + esc((x.disposition || x.status).toLowerCase()) + ')'; }).join(', ') + '.</p>' : '') +
       '</section>' +
@@ -103,7 +105,7 @@
           '<div class="wq-right">' + APP.statusBadge(f.outcome) + APP.btn('Read', 'btn-surface', null, 'data-act="open-form" data-id="' + fid + '"', 'is-sm') + '</div></div>';
       }).join('') + '</div>' : APP.callout('No prior coaching is attached. Any step above documented counselling is blocked until there is.', 'is-warning', 'triangle-alert')) +
       '</section>' +
-      '<section class="card">' + APP.panelHead('Audit trail', 'Every state change, attributed and timestamped. Append only.') +
+      '<section class="card">' + APP.panelHead('Audit trail', 'Append only') +
       '<div class="audit">' + c.audit.map(function (a) {
         return '<div class="audit-row"><span class="audit-when">' + esc(a.on) + '</span><span class="audit-what">' + esc(a.what) + '<span class="audit-who">' + esc(a.who === 'System' ? 'System' : P(a.who).name) + '</span></span></div>';
       }).join('') + '</div></section></div>' +
@@ -225,7 +227,7 @@
     if (r[1] && r[1].indexOf('PC-') === 0) return detail(r[1]);
     return APP.page({
       crumbs: [['Home', '#/home'], ['Performance cases', '#/cases']],
-      title: 'Performance cases', desc: 'Track, subtrack and step. Documentation, letter, approvals and audit trail on every one.',
+      title: 'Performance cases', desc: 'Progressive discipline, with the full audit trail.',
       body: list()
     });
   };

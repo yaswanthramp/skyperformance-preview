@@ -27,7 +27,9 @@
       if (q && (x.id + ' ' + P(x.emp).name + ' ' + x.summary + ' ' + D.formType(x.ft).name).toLowerCase().indexOf(q) < 0) return false;
       return true;
     });
-    return '<div class="filter-bar">' +
+    var allF = APP.forms();
+    return APP.glance([[allF.length, 'Records'], [allF.filter(function (x) { return x.outcome === 'Needs improvement'; }).length, 'Needs improvement', 'is-bad'], [allF.filter(function (x) { return x.outcome === 'Recognition'; }).length, 'Recognition', 'is-good'], [allF.filter(function (x) { return x.geoFlag; }).length, 'Recorded off site', 'is-warn']]) +
+      '<div class="filter-bar">' +
       '<div class="search" style="min-width:260px"><span class="search-icon">' + ic('search', 16) + '</span><input class="input" data-input="recq" value="' + esc(f.recq || '') + '" placeholder="Person, form id or a word in the summary"></div>' +
       APP.dd('recType', [['All', 'All form types']].concat(D.FORM_TYPES.map(function (t) { return [t.id, t.name]; })), f.recType || 'All') +
       APP.dd('recOut', [['All', 'Any outcome'], ['Needs improvement', 'Needs improvement'], ['Meets standard', 'Meets standard'], ['Recognition', 'Recognition'], ['Documented', 'Documented']], f.recOut || 'All') +
@@ -47,12 +49,13 @@
             APP.btn('Open', 'btn-surface', 'file-text', 'data-act="open-form" data-id="' + x.id + '"', 'is-sm')
           ] };
         }), { empty: 'No records match. Retrieval is scoped to your branch of the chart.' }) + '</section>' +
-      APP.callout('Any record here renders as the original document, with every question and answer intact, and prints the same way in two years as it does today. <b>Retrieval target: under a minute by person, form id or date.</b>', 'is-info', 'file-text');
+      APP.why('Why records never change', '<p>Every record renders as the original document with every answer intact. A correction creates a new version and keeps the old one.</p>');
   }
 
   function reviews() {
     var list = APP.reviews();
-    return APP.callout('A location review is the same form engine as everything else, just longer: 118 questions across eight sections, completed on site. It is started from <b>Start a form</b> and picked from the Operational review family, which is why it is not a separate part of the product.', 'is-info', 'building-2') +
+    return APP.hint('118 questions, eight sections, completed on site. Start one from <b>Start a form</b>, Operational review.', 'building-2') +
+      APP.glance([[list.filter(function (v) { return v.status === 'Completed'; }).length, 'Completed', 'is-good'], [list.filter(function (v) { return v.status === 'In progress'; }).length, 'In progress'], [list.filter(function (v) { return v.status === 'Scheduled'; }).length, 'Scheduled'], [list.reduce(function (n, v) { return n + (v.findings || 0); }, 0), 'Findings', 'is-warn']]) +
       (APP.canRunForms() ? '<div class="filter-bar"><span class="fb-spacer"></span>' +
         APP.btn('Export the review log', 'btn-surface', 'download', 'data-act="export" data-what="The location review log"', 'is-sm') +
         APP.btn('Start a review', 'btn-solid', 'circle-play', 'data-act="run-form" data-ft="FT-LOC"', 'is-sm') + '</div>' : '') +
@@ -74,7 +77,7 @@
   }
 
   function deleted() {
-    return APP.callout('A deleted record is never gone. It leaves the active history, keeps its id, and carries who deleted it, when, and why. This view is what an auditor asks for first.', 'is-warning', 'trash-2') +
+    return APP.hint('Deleted means removed from history, never from the file. Who, when and why are kept.', 'trash-2') +
       '<section class="card flush-card">' +
       APP.table([{ t: 'Form' }, { t: 'Employee' }, { t: 'Originally by' }, { t: 'Deleted by' }, { t: 'Deleted on' }, { t: 'Reason' }],
         D.DELETED_FORMS.map(function (x) {
@@ -85,7 +88,7 @@
   }
 
   function exportsTab() {
-    return APP.callout('Two kinds of export. A report export is a spreadsheet anyone in scope can pull. An employee file export is a single package containing everything about one person, and it is logged against whoever asked for it.', 'is-info', 'package') +
+    return APP.hint('Every export is logged against whoever asked for it.', 'package') +
       '<div class="card-grid">' +
       [['Completion by location', 'CSV, one row per location and manager', 'chart-column', false],
        ['Forms by type', 'CSV, counts and median duration', 'file-text', false],
@@ -125,7 +128,7 @@
     return APP.page({
       crumbs: [['Home', '#/home'], [APP.is('employee') ? 'My documents' : 'Records', '#/records']],
       title: APP.is('employee') ? 'My documents' : 'Records',
-      desc: APP.is('employee') ? 'Everything on file about you, with the original document intact.' : 'Every interaction, retrievable by person, form id or date.',
+      desc: APP.is('employee') ? 'Everything on file about you.' : 'Find any record by person, id or date.',
       tabs: tabsFor(tab), body: body
     });
   };

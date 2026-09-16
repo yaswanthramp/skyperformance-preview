@@ -382,3 +382,99 @@
 .table .row-gap > span { min-width: 0; }
 /* gray-2 alone is too close to the card behind it, so the strip gets a ring. */
 .summary-strip { box-shadow: inset 0 0 0 1px var(--border-subtle); }
+
+/* ============================================================
+   Skimmability. A screen should answer "how much" and "what is
+   wrong" before anyone reads a sentence.
+   ============================================================ */
+.page-hint { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0 0 var(--space-4); font-size: var(--fs-1); color: var(--fg-low); line-height: 1.5; }
+.page-hint svg { flex: 0 0 auto; margin-top: 2px; color: var(--fg-subtle); }
+.page-hint b { color: var(--fg-high); font-weight: var(--weight-medium); }
+
+.collapse.is-quiet { border: 0; background: none; padding: 0; margin: var(--space-4) 0 0; }
+.collapse.is-quiet > summary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-1) 0; font-size: var(--fs-1); font-weight: var(--weight-medium); color: var(--fg-low); cursor: pointer; }
+.collapse.is-quiet > summary:hover { color: var(--fg-high); }
+.collapse.is-quiet .why-body { padding: var(--space-2) 0 0 var(--space-5); font-size: var(--fs-1); color: var(--fg-low); line-height: 1.6; max-width: 70ch; }
+.collapse.is-quiet .why-body p { margin: 0 0 var(--space-2); }
+
+.glance { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-4); }
+.glance-item { display: flex; flex-direction: column; gap: 0; flex: 1 1 116px; min-width: 100px; padding: var(--space-3); border: 0; border-radius: var(--radius-3); background: var(--gray-2); box-shadow: inset 0 0 0 1px var(--border-subtle); font: inherit; text-align: left; color: inherit; }
+button.glance-item { cursor: pointer; }
+button.glance-item:hover { background: var(--gray-3); }
+.glance-num { font-size: var(--fs-6); font-weight: var(--weight-bold); color: var(--fg-high); font-variant-numeric: tabular-nums; line-height: 1.15; }
+.glance-label { font-size: var(--fs-1); color: var(--fg-low); }
+.glance-item.is-bad { background: var(--danger-bg); box-shadow: inset 0 0 0 1px var(--red-6); }
+.glance-item.is-bad .glance-num, .glance-item.is-bad .glance-label { color: var(--danger-text); }
+.glance-item.is-warn { background: var(--warning-bg); box-shadow: inset 0 0 0 1px var(--orange-6); }
+.glance-item.is-warn .glance-num, .glance-item.is-warn .glance-label { color: var(--warning-text); }
+.glance-item.is-good { background: var(--success-bg); box-shadow: inset 0 0 0 1px var(--green-6); }
+.glance-item.is-good .glance-num, .glance-item.is-good .glance-label { color: var(--success-text); }
+
+.sec-label { display: flex; align-items: center; gap: var(--space-3); font-size: var(--fs-1); font-weight: var(--weight-medium); letter-spacing: .04em; text-transform: uppercase; color: var(--fg-low); margin: var(--space-5) 0 var(--space-3); }
+.sec-label::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--border-subtle); }
+.sec-label .sec-right { flex: 0 0 auto; text-transform: none; letter-spacing: 0; font-weight: var(--weight-regular); }
+.page-main > .sec-label:first-child { margin-top: 0; }
+
+/* ---- goal and objective rows ---- */
+.goal { display: flex; gap: var(--space-3); padding: var(--space-4) 0; border-top: var(--stroke-thin) solid var(--border-subtle); }
+.goal:first-of-type { border-top: 0; padding-top: 0; }
+.goal-ic { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: var(--radius-2); background: var(--accent-3); color: var(--accent-11); flex: 0 0 auto; }
+.goal-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.goal-top { display: flex; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap; }
+.goal-t { font-size: var(--fs-3); font-weight: var(--weight-medium); color: var(--fg-high); flex: 1 1 220px; }
+.goal-meta { display: flex; gap: var(--space-3); flex-wrap: wrap; font-size: var(--fs-1); color: var(--fg-low); }
+.goal-how { font-size: var(--fs-2); color: var(--fg-low); line-height: 1.55; }
+.goal-bar { display: flex; align-items: center; gap: var(--space-3); }
+.goal-bar .progress { flex: 1 1 auto; }
+.goal-pct { font-size: var(--fs-1); font-weight: var(--weight-medium); color: var(--fg-high); font-variant-numeric: tabular-nums; flex: 0 0 34px; text-align: right; }
+
+/* ---- competency ladder ---- */
+.skill-row { display: grid; grid-template-columns: minmax(150px, 1.4fr) 1fr 108px; gap: var(--space-4); align-items: center; padding: var(--space-3) 0; border-top: var(--stroke-thin) solid var(--border-subtle); }
+.skill-row:first-of-type { border-top: 0; }
+.skill-name { font-size: var(--fs-2); color: var(--fg-high); }
+.skill-area { display: block; font-size: var(--fs-1); color: var(--fg-subtle); }
+.skill-steps { display: flex; gap: 4px; }
+.skill-step { flex: 1 1 0; height: 22px; border-radius: var(--radius-2); background: var(--gray-3); display: flex; align-items: center; justify-content: center; font-size: var(--fs-1); color: var(--fg-subtle); }
+.skill-step.is-have { background: var(--accent-9); color: var(--accent-contrast); font-weight: var(--weight-bold); }
+.skill-step.is-gap { background: var(--gray-4); box-shadow: inset 0 0 0 1px var(--border-ui); color: var(--fg-low); }
+.skill-note { font-size: var(--fs-1); color: var(--fg-low); text-align: right; }
+@media (max-width: 720px) { .skill-row { grid-template-columns: 1fr; gap: var(--space-2); } .skill-note { text-align: left; } }
+
+/* ---- checkpoint timeline ---- */
+.timeline { display: flex; flex-direction: column; }
+.tl-row { display: grid; grid-template-columns: 26px 1fr; gap: var(--space-3); position: relative; padding-bottom: var(--space-4); }
+.tl-row:last-child { padding-bottom: 0; }
+.tl-row::before { content: ""; position: absolute; left: 12px; top: 24px; bottom: 0; width: 1px; background: var(--border-ui); }
+.tl-row:last-child::before { display: none; }
+.tl-dot { width: 26px; height: 26px; border-radius: var(--radius-full); display: inline-flex; align-items: center; justify-content: center; background: var(--gray-3); color: var(--fg-subtle); box-shadow: inset 0 0 0 1px var(--border-ui); z-index: 1; }
+.tl-row.is-done .tl-dot { background: var(--success-solid); color: #fff; box-shadow: none; }
+.tl-row.is-next .tl-dot { background: var(--accent-9); color: var(--accent-contrast); box-shadow: none; }
+.tl-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tl-top { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.tl-when { font-size: var(--fs-2); font-weight: var(--weight-medium); color: var(--fg-high); }
+.tl-note { font-size: var(--fs-2); color: var(--fg-low); line-height: 1.55; }
+
+/* ---- feedback cards ---- */
+.fb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-4); }
+.fb-card { display: flex; flex-direction: column; gap: var(--space-3); }
+.fb-top { display: flex; align-items: center; gap: var(--space-2); }
+.fb-text { font-size: var(--fs-3); color: var(--fg-high); line-height: 1.55; }
+.fb-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--fs-1); color: var(--fg-low); margin-top: auto; }
+.lvl-chip { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius-2); background: var(--gray-4); color: var(--fg-high); font-size: var(--fs-1); font-weight: var(--weight-medium); font-variant-numeric: tabular-nums; }
+.lvl-chip.is-gap { background: var(--orange-4); color: var(--orange-12); }
+.tick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.tick-list li { display: flex; gap: var(--space-2); font-size: var(--fs-2); color: var(--fg-high); line-height: 1.5; }
+.tick-list li svg { flex: 0 0 auto; margin-top: 3px; color: var(--success-solid); }
+.why-tip { display: inline-flex; vertical-align: -2px; color: var(--fg-subtle); cursor: help; }
+.glance-item.is-picked { box-shadow: inset 0 0 0 2px var(--accent-9); }
+
+/* The DS draws the ring on the summary itself with a (0,1,2) selector, so the
+   quiet variant has to match that specificity to remove it. */
+details.collapse.is-quiet > summary { box-shadow: none; min-height: 0; padding: var(--space-1) 0; font-size: var(--fs-1); color: var(--fg-low); }
+details.collapse.is-quiet > summary:hover { color: var(--fg-high); }
+/* In a 320px rail the three column ladder overflows, so it stacks. */
+.skill-compact .skill-row { grid-template-columns: 1fr auto; grid-template-areas: "name note" "steps steps"; gap: var(--space-2) var(--space-3); }
+.skill-compact .skill-name { grid-area: name; }
+.skill-compact .skill-steps { grid-area: steps; }
+.skill-compact .skill-note { grid-area: note; white-space: nowrap; }
+.skill-compact .skill-note br, .skill-compact .skill-note br + * { display: none; }

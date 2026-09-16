@@ -41,9 +41,9 @@
       ]) + '</section>' +
       (carried.length ? '<section class="card">' + APP.panelHead('Carried forward from last time', 'These stay on every form for this person until they are closed.') +
         '<div class="wq">' + carried.map(APP.actionRow).join('') + '</div></section>' : '') +
-      '<section class="card">' + APP.panelHead('Before you start', 'Two rules that keep the record usable later.') +
-        APP.callout('<b>Write the behaviour, not the person.</b> "Used an out of date procedure on three of five tasks" is coachable and defensible. "Careless" is neither.', 'is-info', 'pen-line') +
-        APP.callout('<b>Do not put an investigation in here.</b> Formal investigations belong in the HR case system. This form rejects text tagged to an open investigation.', 'is-warning', 'ban') +
+      '<section class="card">' + APP.panelHead('Before you start') +
+        '<ul class="tick-list"><li>' + ic('check', 14) + '<span><b>Write the behaviour, not the person.</b> "Out of date procedure on 3 of 5 tasks", not "careless".</span></li>' +
+        '<li>' + ic('ban', 14) + '<span><b>No investigations here.</b> Those belong in the HR case system.</span></li></ul>' +
       '</section>';
   }
 

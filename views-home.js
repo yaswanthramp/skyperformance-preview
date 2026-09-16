@@ -31,11 +31,11 @@
       ['Measure', 'Quality 86.4%', 'activity', '#/home/measures'],
       ['Task', 'TP-4471, overdue', 'list-checks', '#/todo'],
       ['Form', 'FM-20904 documented', 'clipboard-list', '#/records'],
-      ['Case', 'PC-3391 written warning', 'gavel', '#/cases/PC-3391'],
-      ['Approval', '2 of 4 recorded', 'user-check', '#/cases/PC-3391'],
+      ['PIP', 'PIP-408, 30 days', 'clipboard-check', '#/pips/PIP-408'],
+      ['Case', 'Only if not met', 'gavel', '#/cases'],
       ['Export', 'Employee file, one package', 'package', '#/records/exports']
     ];
-    return '<section class="card">' + APP.panelHead('How the product works', 'One chain. Nothing falls out of it. Click any link to jump to that point in the record.') +
+    return '<section class="card">' + APP.panelHead('How the product works', 'Click any step') +
       '<div class="chain">' + steps.map(function (s, i) {
         var route = s[3].split('/')[1];
         var can = APP.nav().some(function (n) { return n[0] === route; }) || route === 'todo' || route === 'home';
@@ -63,12 +63,14 @@
   function measures() {
     var locs = APP.scopeLocs(), loc = S.f.mLoc || locs[0];
     if (locs.indexOf(loc) < 0) loc = locs[0];
-    return APP.callout('A measure here is not a chart, it is a subscription. Each one has a stable id, refreshes on a fixed cadence, and the rule engine reads it. A miss becomes a coaching task without a manager deciding, which is the whole point.', 'is-info', 'activity') +
+    var offT = D.MEASURES.filter(function (m) { var x = D.metric(m.id, loc); return x && !D.onTarget(m.id, x.v); }).length;
+    return APP.hint('Each measure feeds the rules. A miss becomes a to-do without anyone deciding.', 'activity') +
+      APP.glance([[D.MEASURES.length, 'Measures'], [D.MEASURES.length - offT, 'On target', 'is-good'], [offT, 'Off target', offT ? 'is-bad' : ''], [D.RULES.filter(function (r) { return r.msr; }).length, 'Rules subscribed']]) +
       '<div class="filter-bar">' + APP.dd('mLoc', locs.map(function (l) { return [l, D.locName(l)]; }), loc) +
       '<span class="fb-spacer"></span><span class="mini-note">Refreshed nightly at 02:00 local</span>' +
       APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="The performance measures as CSV"', 'is-sm') + '</div>' +
       '<div class="sig-grid">' + D.MEASURES.map(function (m) { return measureCard(m.id, loc); }).join('') + '</div>' +
-      '<section class="card" style="margin-top:var(--space-5)">' + APP.panelHead('What subscribes to what', 'Changing a target changes what gets coached. That is why this table exists.') +
+      APP.sectionLabel('What subscribes to what') + '<section class="card">' +
       APP.table([{ t: 'Measure' }, { t: 'Id' }, { t: 'Target' }, { t: 'Direction' }, { t: 'Rules subscribed' }],
         D.MEASURES.map(function (s) {
           var rules = D.RULES.filter(function (r) { return r.msr === s.id; });
@@ -90,7 +92,7 @@
       stat('Forms submitted', String(D.FORMS_BY_TYPE.reduce(function (n, t) { return n + t[1]; }, 0)), 'file-text', 'All types, this cycle') +
       stat('Median time to complete', '13 min', 'timer', 'Observation forms only') +
       '</div>' +
-      '<section class="card">' + APP.panelHead('Completion by location', 'Who is and is not doing the work. This is the number leadership acts on.',
+      '<section class="card">' + APP.panelHead('Completion by location', null,
         APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="Completion by location"', 'is-sm')) +
       APP.table([{ t: 'Location' }, { t: 'Due', num: true }, { t: 'Completed', num: true }, { t: 'Completion' }, { t: 'On time', num: true }, { t: 'Managers', num: true }],
         rows.map(function (r) {
@@ -100,12 +102,12 @@
             r.onTime + '%', String(r.leaders)] };
         }), { empty: 'Nothing in scope.' }) + '</section>' +
       '<div class="split-2">' +
-      '<section class="card">' + APP.panelHead('Completion by manager', 'Completion is owed by the manager, not by the employee.') +
+      '<section class="card">' + APP.panelHead('Completion by manager', 'Lowest first') +
       APP.bars(leaders.map(function (l) { return [P(l.who).name, Math.round(l.done / l.due * 100)]; }).sort(function (a, b) { return a[1] - b[1]; }), function (v) { return v + '%'; }) +
       '</section>' +
       '<section class="card">' + APP.panelHead('Forms by type', 'This cycle.') +
       APP.bars(D.FORMS_BY_TYPE.map(function (t) { return [D.formType(t[0]).name, t[1]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8)) +
-      '<p class="mini-note" style="margin-top:var(--space-4)">Recognition is 88 of the 735 forms this cycle. A ratio below one in six is where people start reading the record as a threat.</p>' +
+
       '</section></div>';
   }
 
@@ -115,7 +117,10 @@
     var acts = APP.actions(), open = acts.filter(function (a) { return a.status !== 'Closed'; });
     var forms = APP.forms();
     var kase = APP.cases().filter(function (c) { return c.status === 'Pending approval' || c.status === 'Open'; })[0];
-    return (kase ? APP.callout('<b>A ' + esc(D.STEPS.filter(function (s) { return s.key === kase.step; })[0].name.toLowerCase()) + ' is in progress on your record.</b> You will be asked to acknowledge the letter once it is approved. Acknowledging records that you received it, not that you agree with it. <a href="#/records">Read what is on file</a>.', 'is-warning', 'triangle-alert') : '') +
+    var pip = D.PIPS.filter(function (p) { return p.emp === me.id && p.status !== 'Completed'; })[0];
+    var plan = D.devPlanFor(me.id);
+    return (kase ? APP.callout('<b>' + esc(D.STEPS.filter(function (s) { return s.key === kase.step; })[0].name) + ' pending approval.</b> <a href="#/records/letters">What it means</a>', 'is-warning', 'triangle-alert') : '') +
+      (pip ? APP.callout('<b>Improvement plan ' + esc(pip.id) + ': ' + esc(pip.status.toLowerCase()) + '.</b> <a href="#/pips/' + pip.id + '">Open the plan</a>', 'is-info', 'clipboard-check') : '') +
       '<div class="kpi-row">' +
       stat('Action items you own', String(open.length), 'list-checks', open.filter(function (a) { return a.status === 'Overdue'; }).length + ' overdue', 'is-down', '#/coaching/actions') +
       stat('Coaching on your record', String(forms.length), 'clipboard-list', 'Last on ' + (forms[0] ? forms[0].date : 'no record'), '', '#/coaching') +
@@ -123,18 +128,21 @@
       stat('Waiting on you', kase && kase.letter ? '1' : '0', 'signature', kase && kase.letter ? 'A letter to acknowledge' : 'Nothing waiting', kase && kase.letter ? 'is-down' : '', '#/records/letters') +
       '</div>' +
       '<div class="split-rail">' +
-      '<section class="card">' + APP.panelHead('Your action items', 'Each one came from a documented conversation and stays open until it is closed.') +
+      '<section class="card">' + APP.panelHead('Your action items', open.length + ' open') +
       '<div class="wq">' + (open.length ? open.map(APP.actionRow).join('') : '<div class="table-empty">Nothing open.</div>') + '</div></section>' +
-      '<section class="card">' + APP.panelHead('What your manager sees', 'The same records, in the same words.') +
+      (plan ? '<section class="card">' + APP.panelHead('Development plan', plan.goals.length + ' goals · review ' + esc(plan.review), APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/develop"', 'is-sm')) +
+        plan.goals.map(function (g) { return '<div class="meter" style="margin-bottom:var(--space-3)"><div class="meter-top"><span class="meter-label">' + esc(g.t) + '</span><span class="meter-val">' + g.pct + '%</span></div>' + APP.progress(g.pct) + '</div>'; }).join('') +
+        '</section>' : '') +
+      '<section class="card">' + APP.panelHead('What your manager sees') +
       APP.dataList([
         ['Your manager', APP.personLine(me.mgr, false, 24, false)],
         ['Records about you', forms.length + ' documented forms'],
         ['Measures tracked', (D.EMP_MEASURES[me.id] || []).length + ' measures']
       ]) +
       '<div class="path-block"><span class="path-label">Where you sit</span><span class="cell-id">' + esc(APP.hierPath(me.loc, me.dept)) + '</span></div>' +
-      '<p class="mini-note" style="margin-top:var(--space-3)">Nothing about you is held outside this file. Formal investigations, if there are any, are kept in a separate system and never appear here.</p>' +
+
       '</section></div>' +
-      '<section class="card">' + APP.panelHead('Coaching you have received', 'Most recent first.', APP.btn('Open my coaching', 'btn-surface', 'clipboard-list', 'data-act="goto" data-href="#/coaching"', 'is-sm')) +
+      '<section class="card">' + APP.panelHead('Recent coaching', null, APP.btn('All', 'btn-surface', null, 'data-act="goto" data-href="#/coaching"', 'is-sm')) +
       '<div class="wq">' + forms.slice(0, 5).map(function (f) {
         var ft = D.formType(f.ft);
         return '<div class="wq-row"><span class="wq-ic' + (f.outcome === 'Needs improvement' ? ' is-late' : f.outcome === 'Recognition' || f.outcome === 'Meets standard' ? ' is-good' : '') + '">' + ic(ft.ic, 16) + '</span>' +
@@ -157,10 +165,18 @@
       stat('Your team', String(team.length), 'users', 'Direct and indirect reports', '', '#/org') +
       '</div>' +
       (open.filter(function (t) { return t.status === 'Overdue'; }).length ?
-        APP.callout('<b>' + open.filter(function (t) { return t.status === 'Overdue'; }).length + ' touch point is past its due date.</b> Overdue work rolls up to your Location Director, and an unresolved trend is what opens a performance case. <a href="#/todo">Work the list</a>.', 'is-warning', 'triangle-alert') : '') +
+        APP.callout('<b>' + open.filter(function (t) { return t.status === 'Overdue'; }).length + ' touch point overdue.</b> <a href="#/todo">Work the list</a>', 'is-warning', 'triangle-alert') : '') +
+      APP.sectionLabel('Your people') +
+      APP.glance([
+        [D.DEV_PLANS.filter(function (p) { return APP.inScope(p.emp) && p.emp !== me.id && p.status === 'Active'; }).length, 'Development plans', '', '#/develop'],
+        [D.PIPS.filter(function (p) { return APP.inScope(p.emp) && p.status === 'Active'; }).length, 'Active PIPs', '', '#/pips'],
+        [D.PIPS.filter(function (p) { return APP.inScope(p.emp) && p.status === 'Pending approval'; }).length, 'PIPs pending', 'is-warn', '#/pips/pending'],
+        [APP.cases().filter(function (c) { return c.status === 'Open' || c.status === 'Pending approval'; }).length, 'Open cases', '', '#/cases'],
+        [D.FEEDBACK.filter(function (f) { return APP.inScope(f.to) && f.kind === 'Praise'; }).length, 'Praise this month', 'is-good', '#/feedback']
+      ]) +
       chainCard() +
       '<div class="split-rail">' +
-      '<section class="card">' + APP.panelHead('Your work today', 'The rules decide who to coach, on what, by when. You decide how.',
+      '<section class="card">' + APP.panelHead('Your work today', open.length + ' due',
         APP.btn('Open the to-do list', 'btn-surface', null, 'data-act="goto" data-href="#/todo"', 'is-sm')) +
       '<div class="wq">' + (open.length ? open.slice(0, 6).map(taskRow).join('') : '<div class="table-empty">Nothing due. Rare, and worth enjoying.</div>') + '</div></section>' +
       '<section class="card">' + APP.panelHead('Your team', esc(APP.hierPath(me.loc, me.dept))) +
@@ -173,7 +189,7 @@
       }).join('') + '</div>' +
       APP.btn('Open the org chart', 'btn-soft', 'network', 'data-act="goto" data-href="#/org"', 'is-sm') +
       '</section></div>' +
-      '<section class="card">' + APP.panelHead('Action items you are carrying', 'An item stays on this list, and on the next form for that person, until it is closed.',
+      '<section class="card">' + APP.panelHead('Action items', acts.length + ' open',
         APP.btn('All action items', 'btn-surface', null, 'data-act="goto" data-href="#/todo/actions"', 'is-sm')) +
       '<div class="wq">' + acts.slice(0, 5).map(APP.actionRow).join('') + '</div></section>';
   }
@@ -182,16 +198,23 @@
     var approvals = APP.approvalsFor();
     var byStatus = {};
     D.CASES.forEach(function (c) { var k = c.disposition || c.status; byStatus[k] = (byStatus[k] || 0) + 1; });
-    return (approvals.length ? APP.callout('<b>' + approvals.length + ' case is in your queue.</b> A case cannot activate without documented prior coaching, a completed letter where the step requires one, and every recorded approval. <a href="#/cases">Open the queue</a>.', 'is-warning', 'gavel') : '') +
+    var pipQ = D.PIPS.filter(function (p) { return p.status === 'Pending approval' && p.approvals.some(function (a) { return a.who === 'grant' && a.state === 'Waiting'; }); });
+    return (approvals.length || pipQ.length ? APP.callout('<b>Waiting on you:</b> ' + approvals.length + ' case' + (approvals.length === 1 ? '' : 's') + ', ' + pipQ.length + ' PIP' + (pipQ.length === 1 ? '' : 's') + '. <a href="#/cases">Cases</a> · <a href="#/pips/pending">PIPs</a>', 'is-warning', 'gavel') : '') +
       '<div class="kpi-row">' +
       stat('Cases in your queue', String(approvals.length), 'gavel', 'Waiting on HR review', approvals.length ? 'is-down' : '', '#/cases') +
       stat('Open steps', String(byStatus.Open || 0), 'shield', 'Across all locations', '', '#/cases') +
       stat('Expiring in 30 days', '2', 'hourglass', 'They leave the ladder automatically', '', '#/cases') +
       stat('File exports this month', '4', 'package', '2 for appeals, 2 for audit', '', '#/records/exports') +
       '</div>' +
+      APP.glance([
+        [D.PIPS.filter(function (p) { return p.status === 'Active'; }).length, 'Active PIPs', '', '#/pips'],
+        [D.PIPS.filter(function (p) { return p.status === 'Active' && p.objectives.some(function (o) { return o.status === 'Behind'; }); }).length, 'PIPs behind', 'is-bad', '#/pips'],
+        [D.DEV_PLANS.filter(function (p) { return p.status === 'Active'; }).length, 'Development plans', '', '#/develop'],
+        [D.REVIEWS_360.filter(function (r) { return r.status === 'In progress'; }).length, '360s in progress', '', '#/feedback/threesixty']
+      ]) +
       chainCard() +
       '<div class="split-rail">' +
-      '<section class="card">' + APP.panelHead('Approval queue', 'Every state change is attributed and timestamped.', APP.btn('All cases', 'btn-surface', null, 'data-act="goto" data-href="#/cases"', 'is-sm')) +
+      '<section class="card">' + APP.panelHead('Approval queue', approvals.length + ' waiting', APP.btn('All cases', 'btn-surface', null, 'data-act="goto" data-href="#/cases"', 'is-sm')) +
       '<div class="wq">' + (approvals.length ? approvals.map(function (c) {
         var e = P(c.emp);
         return '<div class="wq-row"><span class="wq-ic is-late">' + ic('gavel', 16) + '</span><div class="wq-main"><span class="wq-t">' + esc(c.id) + ' · ' + esc(D.STEPS.filter(function (s) { return s.key === c.step; })[0].name) + '</span>' +
@@ -200,9 +223,9 @@
       }).join('') : '<div class="table-empty">Nothing waiting on you.</div>') + '</div></section>' +
       '<section class="card">' + APP.panelHead('Cases by state', 'All locations.') +
       APP.bars(Object.keys(byStatus).map(function (k) { return [k, byStatus[k]]; })) +
-      '<p class="mini-note" style="margin-top:var(--space-4)">A rescinded record is retained and flagged. It never counts toward a later step.</p>' +
+
       '</section></div>' +
-      '<section class="card">' + APP.panelHead('Defensibility check', 'What an appeal or a tribunal asks for, and whether the file can produce it.') +
+      '<section class="card">' + APP.panelHead('Defensibility check', 'Can the file answer an appeal?') +
       APP.table([{ t: 'Question' }, { t: 'Where it comes from' }, { t: 'Status' }], [
         ['Was the employee coached before the step was issued', '4 forms attached to PC-3391, dated 22 Jul to 12 Sep', APP.statusBadge('Completed')],
         ['Did the employee receive the letter', 'Acknowledgement timestamp on the record', APP.statusBadge('Completed')],

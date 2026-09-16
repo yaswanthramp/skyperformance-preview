@@ -103,6 +103,25 @@
   APP.emptyState = function (icon, title, text, action) {
     return '<div class="empty-state"><div class="empty-art">' + ic(icon, 40) + '</div><h2>' + title + '</h2><p>' + text + '</p>' + (action || '') + '</div>';
   };
+  /* Skimmability helpers.
+     hint: one line of context under the tabs, never a paragraph.
+     why:  the rationale, collapsed, for whoever wants it.
+     glance: a row of compact counts so a screen answers "how much" at a glance. */
+  APP.hint = function (text, icon) {
+    return '<p class="page-hint">' + ic(icon || 'info', 14) + '<span>' + text + '</span></p>';
+  };
+  APP.why = function (label, html) {
+    return '<details class="collapse is-quiet"><summary>' + ic('circle-help', 14) + '<span>' + esc(label) + '</span></summary><div class="why-body">' + html + '</div></details>';
+  };
+  APP.glance = function (items) {
+    return '<div class="glance">' + items.map(function (i) {
+      return '<' + (i[3] ? 'button' : 'div') + ' class="glance-item' + (i[2] ? ' ' + i[2] : '') + '"' + (i[3] ? ' data-act="goto" data-href="' + i[3] + '"' : '') + '>' +
+        '<span class="glance-num">' + i[0] + '</span><span class="glance-label">' + esc(i[1]) + '</span></' + (i[3] ? 'button' : 'div') + '>';
+    }).join('') + '</div>';
+  };
+  APP.sectionLabel = function (t, right) {
+    return '<div class="sec-label">' + esc(t) + (right ? '<span class="sec-right">' + right + '</span>' : '') + '</div>';
+  };
   APP.dataList = function (rows) {
     return '<dl class="data-list">' + rows.map(function (r) { return '<dt class="dl-label">' + r[0] + '</dt><dd class="dl-value">' + r[1] + '</dd>'; }).join('') + '</dl>';
   };
@@ -200,18 +219,27 @@
     employee: [
       ['home', 'Home', 'house', 'Home'],
       ['coaching', 'My coaching', 'clipboard-list', 'Coaching'],
+      ['develop', 'Development plan', 'target', 'Develop'],
+      ['pips', 'My improvement plan', 'clipboard-check', 'PIP'],
+      ['feedback', 'Feedback', 'message-square-text', 'Feedback'],
       ['records', 'My documents', 'folder', 'Docs']
     ],
     manager: [
       ['home', 'Home', 'house', 'Home'],
       ['todo', 'To-do list', 'list-checks', 'To do'],
+      ['develop', 'Development', 'target', 'Develop'],
+      ['pips', 'PIPs', 'clipboard-check', 'PIPs'],
+      ['cases', 'Performance cases', 'gavel', 'Cases'],
+      ['feedback', 'Feedback', 'message-square-text', 'Feedback'],
       ['org', 'Org chart', 'network', 'Org'],
-      ['records', 'Records', 'folder', 'Records'],
-      ['cases', 'Performance cases', 'gavel', 'Cases']
+      ['records', 'Records', 'folder', 'Records']
     ],
     hr: [
       ['home', 'Home', 'house', 'Home'],
+      ['pips', 'PIPs', 'clipboard-check', 'PIPs'],
       ['cases', 'Performance cases', 'gavel', 'Cases'],
+      ['develop', 'Development', 'target', 'Develop'],
+      ['feedback', 'Feedback', 'message-square-text', 'Feedback'],
       ['org', 'Org chart', 'network', 'Org'],
       ['records', 'Records', 'folder', 'Records'],
       ['settings', 'Settings', 'settings', 'Settings']
@@ -229,6 +257,10 @@
     if (route === 'todo') return APP.myTasks().filter(function (t) { return t.status === 'Open' || t.status === 'Overdue' || t.status === 'Draft'; }).length;
     if (route === 'coaching') return APP.actions().filter(function (a) { return a.status !== 'Closed'; }).length;
     if (route === 'cases') return APP.approvalsFor().length;
+    if (route === 'pips') return APP.is('employee')
+      ? D.PIPS.filter(function (p) { return p.emp === APP.me().id && p.status === 'Active'; }).length
+      : D.PIPS.filter(function (p) { return p.status === 'Pending approval' && p.approvals.some(function (a) { return a.who === APP.me().id && a.state === 'Waiting'; }); }).length;
+    if (route === 'feedback') return D.REVIEWS_360.filter(function (r) { return r.raters.some(function (x) { return x.who === APP.me().id && x.state === 'Waiting'; }); }).length;
     return 0;
   };
 
@@ -280,7 +312,7 @@
     });
     html += '<div class="nav-foot"><button class="nav-help" data-act="about">' + ic('circle-help', 18, 'nav-icon') + '<span class="nav-label">About this wireframe</span></button></div>';
     document.getElementById('sidebar').innerHTML = html;
-    document.getElementById('bottomNav').innerHTML = APP.nav().map(function (b) {
+    document.getElementById('bottomNav').innerHTML = APP.nav().slice(0, 5).map(function (b) {
       var on = cur === b[0], n = APP.navCount(b[0]);
       return '<a class="bn-item' + (on ? ' is-active' : '') + '" href="#/' + b[0] + '"' + (on ? ' aria-current="page"' : '') + '><span class="bn-ic">' + ic(b[2], 20) + (n ? '<span class="bn-count">' + n + '</span>' : '') + '</span><span>' + esc(b[3]) + '</span></a>';
     }).join('');
@@ -421,19 +453,22 @@
     APP.dialog({
       title: 'About this wireframe', size: 'is-wide',
       sub: 'skyPerformance: coaching, documentation and progressive discipline for any multi-site employer.',
-      body: APP.callout('The product is one chain: a measure falls below standard, a rule opens a coaching task, the task produces a documented form, the form attaches to a performance case, the case routes for approval, and the whole file exports. <b>Nothing falls out of the chain.</b> Follow it from the card on the Home screen.', 'is-info', 'route') +
+      body: APP.callout('<b>Measure, task, form, PIP, case, export.</b> One chain, and nothing falls out of it. Development plans and feedback sit alongside it and never feed it.', 'is-info', 'route') +
         '<h3 class="section-label">Three roles</h3>' +
         '<div class="epic-list">' + D.ROLES.map(function (r) {
           return '<div class="epic-row"><span class="epic-id">' + esc(r.label.slice(0, 2).toUpperCase()) + '</span><div><div class="epic-name">' + esc(r.label) + ', ' + esc(P(r.person).name) + '</div><div class="epic-where">' + esc(r.note) + '</div></div></div>';
         }).join('') + '</div>' +
         '<h3 class="section-label">Where things live</h3>' +
         '<div class="epic-list">' + [
-          ['Home', 'The dashboard, the performance measures, and the reports, as three tabs.'],
-          ['To-do list', 'Touch points the rules generated, coaching trends, action items and cross group suggestions.'],
-          ['Org chart', 'The reporting line as it comes from the HRIS. Click anyone to open their record.'],
-          ['Records', 'Every documented form and location review, retrievable by person, id or date.'],
-          ['Performance cases', 'Track, subtrack and step, with the five step case wizard and the audit trail.'],
-          ['Settings', 'Form types, task rules, guardrails and retention. HR only.']
+          ['Home', 'Dashboard, performance measures and reports.'],
+          ['To-do list', 'Touch points, trends, action items, cross group.'],
+          ['Development', 'Plans, goals and the competency ladder. About growth, never evidence.'],
+          ['PIPs', 'Fixed length recovery plans with objectives, checkpoints and a recorded outcome.'],
+          ['Performance cases', 'Progressive discipline. The usual way in is a PIP closed as not met.'],
+          ['Feedback', 'Continuous notes and the once a cycle 360. Neither is a record.'],
+          ['Org chart', 'The reporting line from the HRIS, drawn as a chart.'],
+          ['Records', 'Every documented form and review, by person, id or date.'],
+          ['Settings', 'Form types, rules, guardrails, retention. HR only.']
         ].map(function (e) {
           return '<div class="epic-row"><span class="epic-id">' + ic('chevron-right', 14) + '</span><div><div class="epic-name">' + esc(e[0]) + '</div><div class="epic-where">' + esc(e[1]) + '</div></div></div>';
         }).join('') + '</div>' +

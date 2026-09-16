@@ -10,16 +10,19 @@ Switching role re-scopes every screen. Every tab, table row, filter and button i
 
 Static files only: no build, no dependencies.
 
-## Five destinations, not fifteen
+## What is in it
 
-- **Home** — dashboard, performance measures and reports, as three tabs.
-- **To-do list** — touch points the rules generated, coaching trends, action items and
-  cross group suggestions, as four tabs.
-- **Org chart** — the reporting line as the HRIS publishes it, drawn as a chart. Expand,
-  collapse, search, click anyone.
-- **Records** — every documented form and location review, plus deleted records and exports.
-- **Performance cases** — Pending, Open and Closed, with the five step wizard, the
-  generated letter, the approval chain and the audit trail.
+- **Home** · dashboard, performance measures, reports
+- **To-do list** · touch points, coaching trends, action items, cross group
+- **Development** · plans and goals, skills and competency, the framework
+- **PIPs** · objectives, checkpoint timeline, approval, and a recorded outcome
+- **Performance cases** · pending, open and closed, with the five step wizard
+- **Feedback** · continuous notes and 360 reviews
+- **Org chart** · the reporting line from the HRIS, drawn as a chart
+- **Records** · every documented form and review, deleted records, exports
+
+Development plans are about growth and never feed a case. A PIP is a fixed length chance
+to recover, and only a PIP closed as not met leads to a performance case.
 
 ## What to look at
 

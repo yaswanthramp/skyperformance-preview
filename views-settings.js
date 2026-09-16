@@ -12,7 +12,7 @@
   }
 
   function formsTab() {
-    return APP.callout('Every form type is the same six sections. What changes is the question set, the scoring and who can run it. That is why adding a type is configuration and not a release.', 'is-info', 'layers') +
+    return APP.hint('Every type shares six sections. Only the questions, scoring and who runs it change.', 'layers') +
       '<div class="filter-bar"><span class="fb-spacer"></span>' + APP.btn('New form type', 'btn-solid', 'plus', 'data-act="new-ft"', 'is-sm') + '</div>' +
       D.FORM_FAMILIES.map(function (fam) {
         var types = D.FORM_TYPES.filter(function (t) { return t.fam === fam.key; });
@@ -37,7 +37,8 @@
   }
 
   function rulesTab() {
-    return APP.callout('A rule is the only thing allowed to create a touch point. A manager cannot add or delete one by hand, which is what makes completion a fair number to be measured on.', 'is-info', 'sliders-horizontal') +
+    return APP.hint('Rules are the only thing that create a touch point.', 'sliders-horizontal') +
+      APP.glance([[D.RULES.length, 'Rules'], [D.RULES.filter(function (r) { return r.on; }).length, 'On', 'is-good'], [D.RULES.filter(function (r) { return !r.on; }).length, 'Off', 'is-warn'], [D.RULES.reduce(function (n, r) { return n + r.fired; }, 0), 'Fired this cycle']]) +
       '<div class="filter-bar"><span class="fb-spacer"></span>' + APP.btn('New rule', 'btn-solid', 'plus', 'data-act="new-rule"', 'is-sm') + '</div>' +
       '<section class="card flush-card">' +
       APP.table([{ t: 'Rule' }, { t: 'Watches' }, { t: 'Condition' }, { t: 'Creates' }, { t: 'Due in' }, { t: 'Recurrence' }, { t: 'Fired', num: true }, { t: 'State' }],
@@ -53,7 +54,7 @@
   }
 
   function integrityTab() {
-    return APP.callout('The record has to survive an appeal, a tribunal and an audit. These are the rules that decide what may never enter it, and what is always captured alongside it.', 'is-warning', 'shield-alert') +
+    return APP.hint('What may never enter a record, and what is always captured with it.', 'shield-alert') +
       '<section class="card">' + APP.panelHead('Evidence guardrails', 'Applied at submission, before the record becomes immutable.') +
       '<div class="wq">' + D.GUARDRAILS.map(function (g) {
         return '<div class="wq-row"><span class="wq-ic' + (g.state === 'Blocked' ? ' is-late' : '') + '">' + ic(g.state === 'Blocked' ? 'ban' : g.state === 'Warned' ? 'triangle-alert' : 'shield', 16) + '</span>' +

@@ -365,6 +365,9 @@
     { id: 'FM-20812', ft: 'FT-CHK', emp: 'teodor', by: 'wren', date: 'Mon 14 Jul 2026', time: '09:45', mins: 10, loc: 'LOC-DU', dept: 'Operations',
       outcome: 'Documented', geo: 'Not matched, 2.4 km from the registered address', geoFlag: true,
       summary: 'Conversation about unplanned absence. Recorded off site, which the record shows.', attested: true, ack: 'Mon 14 Jul 2026' },
+    { id: 'FM-20871', ft: 'FT-CHK', emp: 'nadia', by: 'priya', date: 'Tue 18 Aug 2026', time: '14:20', mins: 12, loc: 'LOC-AS', dept: 'Operations',
+      outcome: 'Documented', geo: 'Matched, 15 m from the registered address',
+      summary: 'Second conversation about output per shift. Tool setup between batches is costing roughly four units a shift.', attested: true, ack: 'Tue 18 Aug 2026' },
     { id: 'FM-20699', ft: 'FT-OBS', emp: 'dana', by: 'priya', date: 'Mon 16 Jun 2026', time: '08:40', mins: 15, loc: 'LOC-AS', dept: 'Operations',
       outcome: 'Meets standard', noCount: 1, geo: 'Matched, 16 m from the registered address',
       summary: 'Strong customer interaction. Work recorded before the end of shift.', scores: [2, 2, 2, 2, 2, 2, 2, 1, 2], attested: true, ack: 'Mon 16 Jun 2026' }
@@ -520,6 +523,189 @@
     { what: 'Rescinded records', keep: '7 years, flagged as rescinded', then: 'Never counted toward a later step' },
     { what: 'Employee file exports', keep: 'Export log kept 7 years', then: 'The export package itself is not stored' },
     { what: 'Location and duration telemetry', keep: '2 years', then: 'Dropped from the record, form remains' }
+  ];
+
+  /* ---------------- competency framework ----------------
+     Four levels, used by both the development plan and skill validation. */
+  D.LEVELS_SKILL = [
+    { n: 1, name: 'Learning', desc: 'Needs supervision' },
+    { n: 2, name: 'Capable', desc: 'Works unsupervised' },
+    { n: 3, name: 'Strong', desc: 'Handles exceptions' },
+    { n: 4, name: 'Coaches others', desc: 'Sets the standard' }
+  ];
+  D.COMPETENCIES = [
+    { id: 'C-ACC', name: 'Accuracy and recording', area: 'Core' },
+    { id: 'C-PRO', name: 'Procedure adherence', area: 'Core' },
+    { id: 'C-CUS', name: 'Customer handling', area: 'Core' },
+    { id: 'C-EXC', name: 'Exception handling', area: 'Technical' },
+    { id: 'C-SYS', name: 'Systems and tools', area: 'Technical' },
+    { id: 'C-COM', name: 'Communication', area: 'Behavioural' },
+    { id: 'C-TEA', name: 'Teamwork', area: 'Behavioural' },
+    { id: 'C-LEAD', name: 'Coaching others', area: 'Leadership' }
+  ];
+  D.competency = function (id) { for (var i = 0; i < D.COMPETENCIES.length; i++) if (D.COMPETENCIES[i].id === id) return D.COMPETENCIES[i]; return { id: id, name: id, area: '' }; };
+  /* [competency, current, target, validated] per person */
+  D.SKILLS = {
+    dana: [['C-ACC', 1, 3, null], ['C-PRO', 2, 3, 'Mar 2026'], ['C-CUS', 3, 3, 'Jan 2026'], ['C-EXC', 1, 2, null], ['C-SYS', 2, 3, 'Nov 2025'], ['C-COM', 3, 3, 'Jan 2026']],
+    lorna: [['C-ACC', 4, 4, 'Aug 2026'], ['C-PRO', 4, 4, 'Aug 2026'], ['C-CUS', 3, 3, 'May 2026'], ['C-EXC', 3, 3, 'May 2026'], ['C-SYS', 3, 3, 'Feb 2026'], ['C-COM', 3, 3, 'Feb 2026']],
+    trevor: [['C-ACC', 2, 3, null], ['C-PRO', 1, 3, null], ['C-CUS', 2, 3, null], ['C-EXC', 1, 2, null], ['C-SYS', 1, 3, null], ['C-COM', 2, 3, null]],
+    marisol: [['C-ACC', 4, 4, 'Jun 2026'], ['C-PRO', 4, 4, 'Jun 2026'], ['C-CUS', 3, 4, 'Apr 2026'], ['C-EXC', 4, 4, 'Jun 2026'], ['C-SYS', 3, 4, 'Apr 2026'], ['C-LEAD', 2, 3, null]],
+    nadia: [['C-ACC', 3, 3, 'Jul 2026'], ['C-PRO', 3, 3, 'Jul 2026'], ['C-CUS', 2, 3, null], ['C-EXC', 2, 3, null], ['C-SYS', 3, 3, 'Mar 2026'], ['C-COM', 3, 3, 'Mar 2026']],
+    devon: [['C-CUS', 2, 3, null], ['C-COM', 2, 3, null], ['C-SYS', 2, 3, 'Apr 2026'], ['C-TEA', 3, 3, 'Apr 2026']],
+    priya: [['C-LEAD', 2, 4, null], ['C-COM', 3, 4, 'Feb 2026'], ['C-ACC', 4, 4, 'Feb 2026'], ['C-TEA', 3, 4, 'Feb 2026']]
+  };
+
+  /* ---------------- development plans ----------------
+     The forward looking half of the product. A goal names a competency, a
+     target level and a date. It is not remediation and never feeds a case. */
+  D.DEV_PLANS = [
+    { id: 'DP-701', emp: 'dana', owner: 'priya', cycle: 'H2 2026', status: 'Active', opened: 'Mon 6 Jul 2026', review: 'Fri 2 Oct 2026',
+      goals: [
+        { id: 'G-1', t: 'Reach Strong on accuracy and recording', c: 'C-ACC', from: 1, to: 3, due: 'Fri 2 Oct 2026', pct: 35, status: 'Open',
+          how: 'Close recording before leaving the workstation, shadow a peer for one shift, one skill validation.' },
+        { id: 'G-2', t: 'Reach Capable on exception handling', c: 'C-EXC', from: 1, to: 2, due: 'Fri 30 Oct 2026', pct: 10, status: 'Open',
+          how: 'Complete the exceptions module, then handle five exceptions with the manager observing.' }],
+      checkins: [
+        { on: 'Fri 7 Aug 2026', by: 'priya', t: 'Recording improving on early shifts, still slipping on lates.' },
+        { on: 'Fri 4 Sep 2026', by: 'priya', t: 'Shadow shift done. Skill validation not yet booked.' }] },
+    { id: 'DP-704', emp: 'trevor', owner: 'priya', cycle: 'H2 2026', status: 'Active', opened: 'Mon 20 Jul 2026', review: 'Fri 16 Oct 2026',
+      goals: [
+        { id: 'G-1', t: 'Reach Capable on procedure adherence', c: 'C-PRO', from: 1, to: 3, due: 'Fri 16 Oct 2026', pct: 55, status: 'Open',
+          how: 'New starter pathway, weekly check in, sign off at day 90.' },
+        { id: 'G-2', t: 'Reach Capable on systems and tools', c: 'C-SYS', from: 1, to: 3, due: 'Fri 16 Oct 2026', pct: 40, status: 'Open',
+          how: 'Systems module plus a supervised run on each of the three tools.' }],
+      checkins: [{ on: 'Fri 21 Aug 2026', by: 'priya', t: 'Ahead of the pathway on procedure. Systems is the gap.' }] },
+    { id: 'DP-710', emp: 'marisol', owner: 'priya', cycle: 'H2 2026', status: 'Active', opened: 'Mon 6 Jul 2026', review: 'Fri 2 Oct 2026',
+      goals: [
+        { id: 'G-1', t: 'Reach Strong on coaching others', c: 'C-LEAD', from: 2, to: 3, due: 'Fri 27 Nov 2026', pct: 60, status: 'Open',
+          how: 'Run three team huddles, co-run two observations with the manager.' }],
+      checkins: [{ on: 'Fri 4 Sep 2026', by: 'priya', t: 'Two huddles run and well received. Ready for the first co-observation.' }] },
+    { id: 'DP-688', emp: 'lorna', owner: 'priya', cycle: 'H1 2026', status: 'Complete', opened: 'Mon 12 Jan 2026', review: 'Fri 26 Jun 2026',
+      goals: [{ id: 'G-1', t: 'Reach Coaches others on accuracy', c: 'C-ACC', from: 3, to: 4, due: 'Fri 26 Jun 2026', pct: 100, status: 'Met',
+        how: 'Validate three peers, own the accuracy section of the weekly huddle.' }],
+      checkins: [{ on: 'Fri 26 Jun 2026', by: 'priya', t: 'Met. Now the reference point for accuracy on the team.' }] },
+    { id: 'DP-715', emp: 'nadia', owner: 'priya', cycle: 'H2 2026', status: 'Draft', opened: 'Tue 15 Sep 2026', review: 'Fri 30 Oct 2026',
+      goals: [], checkins: [] },
+    { id: 'DP-720', emp: 'priya', owner: 'curtis', cycle: 'H2 2026', status: 'Active', opened: 'Mon 13 Jul 2026', review: 'Fri 9 Oct 2026',
+      goals: [{ id: 'G-1', t: 'Reach Coaches others on leadership', c: 'C-LEAD', from: 2, to: 4, due: 'Fri 18 Dec 2026', pct: 25, status: 'Open',
+        how: 'Lift touch point completion above 90%, mentor one new manager, complete the leader pathway.' }],
+      checkins: [{ on: 'Fri 4 Sep 2026', by: 'curtis', t: 'Completion is the blocker at 68%. Everything else is on track.' }] }
+  ];
+  D.devPlan = function (id) { for (var i = 0; i < D.DEV_PLANS.length; i++) if (D.DEV_PLANS[i].id === id) return D.DEV_PLANS[i]; return null; };
+  D.devPlanFor = function (emp) { return D.DEV_PLANS.filter(function (p) { return p.emp === emp; })[0] || null; };
+
+  /* ---------------- performance improvement plans ----------------
+     A PIP is not discipline. It is a fixed length, measured chance to recover,
+     and it sits between coaching and the discipline ladder. It ends one of
+     three ways and the ending is recorded. */
+  D.PIP_LENGTHS = [30, 60, 90];
+  D.PIP_OUTCOMES = ['Met', 'Not met', 'Extended'];
+  D.PIPS = [
+    { id: 'PIP-412', emp: 'teodor', owner: 'wren', status: 'Active', days: 60, opened: 'Mon 18 Aug 2026', start: 'Mon 25 Aug 2026',
+      end: 'Fri 23 Oct 2026', daysLeft: 37, loc: 'LOC-DU', reason: 'Quality score below standard for five consecutive periods.',
+      evidence: ['FM-20812'], letter: true,
+      objectives: [
+        { id: 'O-1', t: 'Quality score at or above 95% for four consecutive weeks', m: 'msr.quality', target: '95%', current: '89.4%', status: 'Behind' },
+        { id: 'O-2', t: 'No unplanned absence in the plan period', m: 'msr.absence', target: '0 occurrences', current: '1 occurrence', status: 'Behind' },
+        { id: 'O-3', t: 'Complete the accuracy module and pass the skill validation', m: null, target: 'Signed off', current: 'Module done', status: 'On track' }],
+      support: ['Weekly one to one with the manager', 'Accuracy module and a shadow shift', 'Workload reduced by 15% for the first four weeks'],
+      checkpoints: [
+        { on: 'Mon 8 Sep 2026', done: true, by: 'wren', rating: 'Partly met', t: 'Quality up to 91%. Absence occurrence on 3 Sep is the setback.' },
+        { on: 'Mon 22 Sep 2026', done: false, by: 'wren', rating: null, t: null },
+        { on: 'Mon 6 Oct 2026', done: false, by: 'wren', rating: null, t: null },
+        { on: 'Fri 23 Oct 2026', done: false, by: 'wren', rating: null, t: null }],
+      approvals: [
+        { who: 'wren', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 18 Aug 2026 09:40' },
+        { who: 'harriet', role: 'One level above, Location Director', state: 'Approved', on: 'Mon 18 Aug 2026 15:10' },
+        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 19 Aug 2026 10:02' }],
+      audit: [
+        { on: 'Mon 18 Aug 2026 09:22', who: 'wren', what: 'PIP opened, 60 days, three objectives.' },
+        { on: 'Tue 19 Aug 2026 10:02', who: 'grant', what: 'Approved by HR. Plan starts 25 Aug.' },
+        { on: 'Mon 8 Sep 2026 16:30', who: 'wren', what: 'Checkpoint 1 recorded as Partly met.' }] },
+    { id: 'PIP-408', emp: 'dana', owner: 'priya', status: 'Pending approval', days: 30, opened: 'Tue 16 Sep 2026', start: 'Mon 22 Sep 2026',
+      end: 'Fri 23 Oct 2026', daysLeft: null, loc: 'LOC-AS', reason: 'Recording and accuracy coached four times in ninety days without sustained change.',
+      evidence: ['FM-20831', 'FM-20877', 'FM-20862', 'FM-20904'], letter: true, next: 'curtis',
+      objectives: [
+        { id: 'O-1', t: 'Quality score at or above 95% for three consecutive weeks', m: 'msr.quality', target: '95%', current: '86.4%', status: 'Not started' },
+        { id: 'O-2', t: 'Work recorded before leaving the workstation on every shift', m: null, target: '100% of shifts', current: 'Not started', status: 'Not started' }],
+      support: ['Twice weekly check in with the manager for four weeks', 'Recording reminder on the shift device', 'Shadow shift with a peer'],
+      checkpoints: [
+        { on: 'Mon 6 Oct 2026', done: false, by: 'priya', rating: null, t: null },
+        { on: 'Fri 23 Oct 2026', done: false, by: 'priya', rating: null, t: null }],
+      approvals: [
+        { who: 'priya', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Tue 16 Sep 2026 11:05' },
+        { who: 'curtis', role: 'One level above, Location Director', state: 'Waiting', on: null },
+        { who: 'grant', role: 'HR review', state: 'Waiting', on: null }],
+      audit: [{ on: 'Tue 16 Sep 2026 10:48', who: 'priya', what: 'PIP opened, 30 days, two objectives. Four coaching forms attached.' },
+        { on: 'Tue 16 Sep 2026 11:05', who: 'priya', what: 'Submitted for approval and review.' }] },
+    { id: 'PIP-416', emp: 'nadia', owner: 'priya', status: 'Active', days: 30, opened: 'Mon 24 Aug 2026', start: 'Mon 31 Aug 2026',
+      end: 'Fri 2 Oct 2026', daysLeft: 16, loc: 'LOC-AS', reason: 'Output per shift below standard for two consecutive months.',
+      evidence: ['FM-20871'], letter: true,
+      objectives: [
+        { id: 'O-1', t: 'Output per shift at or above 42 for two consecutive weeks', m: 'msr.output', target: '42.0', current: '40.6', status: 'On track' },
+        { id: 'O-2', t: 'Quality score stays at or above 92% while output rises', m: 'msr.quality', target: '92%', current: '92.6%', status: 'On track' }],
+      support: ['Weekly one to one with the manager', 'Tool setup walkthrough with a senior associate', 'Paired with Marisol Quintero for two shifts'],
+      checkpoints: [
+        { on: 'Mon 7 Sep 2026', done: true, by: 'priya', rating: 'On track', t: 'Output up from 38.8 to 40.6 without any drop in quality.' },
+        { on: 'Mon 21 Sep 2026', done: false, by: 'priya', rating: null, t: null },
+        { on: 'Fri 2 Oct 2026', done: false, by: 'priya', rating: null, t: null }],
+      approvals: [
+        { who: 'priya', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 24 Aug 2026 10:15' },
+        { who: 'curtis', role: 'One level above, Location Director', state: 'Approved', on: 'Mon 24 Aug 2026 14:40' },
+        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 25 Aug 2026 09:30' }],
+      audit: [
+        { on: 'Mon 24 Aug 2026 10:02', who: 'priya', what: 'PIP opened, 30 days, two objectives.' },
+        { on: 'Tue 25 Aug 2026 09:30', who: 'grant', what: 'Approved by HR. Plan starts 31 Aug.' },
+        { on: 'Mon 7 Sep 2026 15:20', who: 'priya', what: 'Checkpoint 1 recorded as On track.' }] },
+    { id: 'PIP-395', emp: 'esther', owner: 'simone', status: 'Completed', days: 60, opened: 'Mon 12 May 2026', start: 'Mon 19 May 2026',
+      end: 'Fri 17 Jul 2026', loc: 'LOC-BR', reason: 'Schedule adherence below standard.', outcome: 'Met', letter: true, evidence: [],
+      objectives: [{ id: 'O-1', t: 'Schedule adherence at or above 95%', m: 'msr.adherence', target: '95%', current: '96.2%', status: 'Met' }],
+      support: ['Weekly one to one', 'Shift pattern reviewed with scheduling'],
+      checkpoints: [
+        { on: 'Mon 2 Jun 2026', done: true, by: 'simone', rating: 'On track', t: 'Adherence at 93%, trending up.' },
+        { on: 'Fri 17 Jul 2026', done: true, by: 'simone', rating: 'Met', t: 'Sustained above 95% for six weeks. Plan closed as met.' }],
+      approvals: [{ who: 'simone', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 12 May 2026 10:00' },
+        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 13 May 2026 09:15' }],
+      audit: [{ on: 'Fri 17 Jul 2026 16:00', who: 'simone', what: 'Closed as Met. No further action.' }] },
+    { id: 'PIP-380', emp: 'camille', owner: 'ivan', status: 'Completed', days: 90, opened: 'Mon 3 Feb 2026', start: 'Mon 10 Feb 2026',
+      end: 'Fri 15 May 2026', loc: 'LOC-CA', reason: 'Customer satisfaction below standard.', outcome: 'Extended', letter: true, evidence: [],
+      objectives: [{ id: 'O-1', t: 'Customer satisfaction at or above 4.4', m: 'msr.csat', target: '4.40', current: '4.35', status: 'Behind' }],
+      support: ['Customer handling module', 'Call reviews twice a week'],
+      checkpoints: [{ on: 'Fri 15 May 2026', done: true, by: 'ivan', rating: 'Partly met', t: 'Close to target and still improving. Extended by 30 days rather than escalated.' }],
+      approvals: [{ who: 'ivan', role: 'Initiator, Customer Service Manager', state: 'Submitted', on: 'Mon 3 Feb 2026 09:00' }],
+      audit: [{ on: 'Fri 15 May 2026 15:00', who: 'ivan', what: 'Extended by 30 days. Closed as Extended on the original plan.' }] }
+  ];
+  D.pip = function (id) { for (var i = 0; i < D.PIPS.length; i++) if (D.PIPS[i].id === id) return D.PIPS[i]; return null; };
+
+  /* ---------------- continuous and 360 feedback ---------------- */
+  D.FEEDBACK = [
+    { id: 'FB-921', to: 'lorna', from: 'imani', on: 'Mon 14 Sep 2026', kind: 'Praise', vis: 'Visible to Lorna and their manager',
+      t: 'Picked up two of my team\'s escalations on Friday without being asked, and closed both the same day.' },
+    { id: 'FB-918', to: 'dana', from: 'marisol', on: 'Fri 11 Sep 2026', kind: 'Suggestion', vis: 'Visible to Dana and their manager',
+      t: 'The morning run goes faster if you set the tool up before the first batch rather than between batches.' },
+    { id: 'FB-915', to: 'devon', from: 'yolanda', on: 'Wed 9 Sep 2026', kind: 'Praise', vis: 'Visible to Devon and their manager',
+      t: 'Stayed calm with a difficult customer for twenty minutes and got them to a resolution.' },
+    { id: 'FB-910', to: 'priya', from: 'lorna', on: 'Mon 7 Sep 2026', kind: 'Suggestion', vis: 'Anonymous to the manager',
+      t: 'Huddles would land better earlier in the shift. By the end of the shift half the team has gone.' },
+    { id: 'FB-902', to: 'trevor', from: 'priya', on: 'Thu 3 Sep 2026', kind: 'Praise', vis: 'Visible to Trevor and their manager',
+      t: 'Asked for help at the right moment on the exception rather than guessing. That is exactly right.' }
+  ];
+  D.REVIEWS_360 = [
+    { id: 'R360-44', subject: 'priya', cycle: 'H2 2026', status: 'In progress', due: 'Fri 9 Oct 2026', opened: 'Mon 1 Sep 2026',
+      raters: [
+        { who: 'curtis', rel: 'Manager', state: 'Submitted', on: 'Wed 10 Sep 2026' },
+        { who: 'imani', rel: 'Peer', state: 'Submitted', on: 'Thu 11 Sep 2026' },
+        { who: 'oscar', rel: 'Peer', state: 'Waiting', on: null },
+        { who: 'dana', rel: 'Direct report', state: 'Submitted', on: 'Mon 8 Sep 2026' },
+        { who: 'lorna', rel: 'Direct report', state: 'Waiting', on: null },
+        { who: 'marisol', rel: 'Direct report', state: 'Submitted', on: 'Tue 9 Sep 2026' }],
+      themes: [['Clear expectations', 4.4], ['Availability', 3.6], ['Recognition given', 3.2], ['Fairness', 4.6], ['Development support', 3.8]] },
+    { id: 'R360-41', subject: 'simone', cycle: 'H2 2026', status: 'Complete', due: 'Fri 28 Aug 2026', opened: 'Mon 20 Jul 2026',
+      raters: [{ who: 'ruben', rel: 'Manager', state: 'Submitted', on: 'Mon 10 Aug 2026' },
+        { who: 'malik', rel: 'Peer', state: 'Submitted', on: 'Tue 11 Aug 2026' },
+        { who: 'kai', rel: 'Direct report', state: 'Submitted', on: 'Wed 12 Aug 2026' },
+        { who: 'esther', rel: 'Direct report', state: 'Submitted', on: 'Wed 12 Aug 2026' }],
+      themes: [['Clear expectations', 4.6], ['Availability', 4.4], ['Recognition given', 4.2], ['Fairness', 4.5], ['Development support', 4.3]] }
   ];
 
   /* ---------------- notifications ---------------- */

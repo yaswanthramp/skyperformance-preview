@@ -70,7 +70,7 @@
       ]) +
       '<div class="path-block"><span class="path-label">Hierarchy path</span><span class="cell-id">' + esc(APP.hierPath(p.loc, p.dept)) + '</span></div>' +
       '</section>' +
-      (inScope ? '<section class="card">' + APP.panelHead('On the record', 'Everything documented about this person.') +
+      (inScope ? '<section class="card">' + APP.panelHead('On the record') +
         '<div class="ph-stats">' +
         '<div class="ph-stat"><span class="ph-stat-v">' + st.forms + '</span><span class="ph-stat-l">Forms</span></div>' +
         '<div class="ph-stat"><span class="ph-stat-v">' + st.acts + '</span><span class="ph-stat-l">Open items</span></div>' +
@@ -81,8 +81,8 @@
         APP.btn('Open the full record', 'btn-solid', 'circle-arrow-right', 'data-act="goto" data-href="#/org/' + p.id + '"', 'is-sm') +
         (APP.canRunForms() && p.id !== APP.me().id ? APP.btn('Run a form', 'btn-surface', 'circle-play', 'data-act="start-form" data-emp="' + p.id + '"', 'is-sm') : '') +
         '</div></section>'
-        : '<section class="card">' + APP.callout('This person is outside your reporting line, so you can see where they sit but not what is on their record. HR sees the whole chart.', 'is-info', 'eye-off') + '</section>') +
-      '<section class="card">' + APP.panelHead('Reporting line', 'Straight up the chart.') +
+        : '<section class="card">' + APP.hint('Outside your reporting line. Their record is closed to you.', 'eye-off') + '</section>') +
+      '<section class="card">' + APP.panelHead('Reporting line') +
       '<div class="oc-line">' + line.map(function (x, i) {
         return '<button class="oc-line-row' + (x.id === id ? ' is-on' : '') + '" data-act="org-select" data-id="' + x.id + '" style="padding-left:' + (i * 14 + 8) + 'px">' +
           (i ? '<span class="oc-line-tick">' + ic('corner-down-right', 14) + '</span>' : '<span class="oc-line-tick">' + ic('building-2', 14) + '</span>') +
@@ -104,6 +104,9 @@
     var tasks = D.TASKS.filter(function (t) { return t.emp === id; });
     var msrs = D.EMP_MEASURES[id] || [];
     var live = cases.filter(function (c) { return c.status === 'Open' || c.status === 'Pending approval'; });
+    var plan = D.devPlanFor(id);
+    var pips = D.PIPS.filter(function (x) { return x.emp === id; });
+    var livePip = pips.filter(function (x) { return x.status !== 'Completed'; })[0];
 
     var head = '<section class="card"><div class="profile-head">' + APP.av(p, 56) +
       '<div class="ph-id"><div class="ph-name">' + esc(p.name) + '</div><div class="ph-meta">' + esc(p.title) + ' · ' + esc(D.locName(p.loc)) + ' · ' + esc(p.dept) + ' · started ' + esc(p.hired) + '</div>' +
@@ -115,6 +118,7 @@
       '</div></div>' +
       (APP.canRunForms() && id !== APP.me().id ? '<div class="row-gap" style="margin-top:var(--space-4)">' +
         APP.btn('Run a form', 'btn-solid', 'circle-play', 'data-act="start-form" data-emp="' + id + '"', 'is-sm') +
+        APP.btn('Open a PIP', 'btn-surface', 'clipboard-check', 'data-act="pip-new" data-emp="' + id + '"', 'is-sm') +
         APP.btn('Open a case', 'btn-surface', 'gavel', 'data-act="start-case" data-emp="' + id + '"', 'is-sm') +
         (APP.isHR() ? APP.btn('Employee file export', 'btn-surface', 'package', 'data-act="file-export"', 'is-sm') : '') +
         '</div>' : '') + '</section>';
@@ -123,6 +127,8 @@
       ['overview', 'Overview', '#/org/' + id],
       ['coaching', 'Coaching', '#/org/' + id + '/coaching', forms.length],
       ['actions', 'Action items', '#/org/' + id + '/actions', acts.length],
+      ['develop', 'Development', '#/org/' + id + '/develop', plan ? plan.goals.length : 0],
+      ['pips', 'PIPs', '#/org/' + id + '/pips', pips.length],
       ['cases', 'Cases', '#/org/' + id + '/cases', cases.length]
     ], tab);
 
@@ -141,6 +147,19 @@
           return { cells: ['<span class="cell-strong">' + esc(a.t) + '</span><span class="cell-sub">' + esc(a.id) + '</span>', esc(a.from), esc(a.due), APP.statusBadge(a.status),
             APP.btn('Open', 'btn-surface', null, 'data-act="open-action" data-id="' + a.id + '"', 'is-sm')] };
         }), { empty: 'Nothing assigned.' }) + '</section>';
+    } else if (tab === 'develop') {
+      body = plan ? '<section class="card">' + APP.panelHead('Development plan', esc(plan.cycle) + ' · review ' + esc(plan.review), APP.statusBadge(plan.status) + APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/develop/' + plan.id + '"', 'is-sm')) +
+        (plan.goals.length ? plan.goals.map(function (g) {
+          return '<div class="meter" style="margin-bottom:var(--space-3)"><div class="meter-top"><span class="meter-label">' + esc(g.t) + '</span><span class="meter-val">' + g.pct + '%</span></div>' + APP.progress(g.pct) + '</div>';
+        }).join('') : '<p class="mini-note">No goals yet.</p>') + '</section>'
+        : APP.emptyState('target', 'No development plan', 'One is opened per person, per cycle.', APP.canRunForms() ? APP.btn('New plan', 'btn-solid', 'plus', 'data-act="dev-new"') : '');
+    } else if (tab === 'pips') {
+      body = '<section class="card flush-card">' + APP.table([{ t: 'PIP' }, { t: 'Reason' }, { t: 'Window' }, { t: 'Status' }, { t: '' }],
+        pips.map(function (x) {
+          return { cells: ['<span class="cell-strong">' + esc(x.id) + '</span><span class="cell-sub">' + x.days + ' days</span>', '<span class="mini-note">' + esc(x.reason) + '</span>',
+            esc(x.start.replace(/^\w+ /, '')) + ' to ' + esc(x.end.replace(/^\w+ /, '')), APP.statusBadge(x.outcome || x.status),
+            APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/pips/' + x.id + '"', 'is-sm')] };
+        }), { empty: 'No improvement plans on this record.' }) + '</section>';
     } else if (tab === 'cases') {
       body = '<section class="card flush-card">' + APP.table([{ t: 'Case' }, { t: 'Track' }, { t: 'Step' }, { t: 'Opened' }, { t: 'Status' }, { t: '' }],
         cases.map(function (c) {
@@ -149,7 +168,14 @@
             APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/cases/' + c.id + '"', 'is-sm')] };
         }), { empty: 'No cases on this record.' }) + '</section>';
     } else {
-      body = '<div class="split-rail"><div class="stack-4">' +
+      body = APP.glance([
+          [forms.length, 'Coaching forms', '', '#/org/' + id + '/coaching'],
+          [acts.filter(function (a) { return a.status !== 'Closed'; }).length, 'Open items', acts.some(function (a) { return a.status === 'Overdue'; }) ? 'is-bad' : '', '#/org/' + id + '/actions'],
+          [plan ? (plan.goals.length ? Math.round(plan.goals.reduce(function (n, g) { return n + g.pct; }, 0) / plan.goals.length) + '%' : '0%') : '—', 'Development progress', '', '#/org/' + id + '/develop'],
+          [livePip ? livePip.status : 'None', 'Improvement plan', livePip ? 'is-warn' : 'is-good', '#/org/' + id + '/pips'],
+          [live.length, 'Open cases', live.length ? 'is-bad' : '', '#/org/' + id + '/cases']
+        ]) +
+        '<div class="split-rail"><div class="stack-4">' +
         (live.length ? APP.callout('<b>' + esc(D.STEPS.filter(function (s) { return s.key === live[0].step; })[0].name) + ' ' + (live[0].status === 'Open' ? 'is active' : 'is pending approval') + ' on this record.</b> <button class="rowlink" data-act="goto" data-href="#/cases/' + live[0].id + '">Open ' + esc(live[0].id) + '</button>.', 'is-warning', 'gavel') : '') +
         '<section class="card">' + APP.panelHead('Performance measures', 'What the rules watch for this person.') +
         (msrs.length ? '<div class="snap">' + msrs.map(function (m) {
@@ -164,7 +190,7 @@
             '<div class="wq-right">' + APP.statusBadge(f.outcome) + APP.btn('Read', 'btn-surface', null, 'data-act="open-form" data-id="' + f.id + '"', 'is-sm') + '</div></div>';
         }).join('') : '<div class="table-empty">Nothing documented yet.</div>') + '</div></section></div>' +
         '<div class="stack-4">' +
-        '<section class="card">' + APP.panelHead('From the HRIS', 'Read only. skyPerformance consumes the hierarchy, it does not own it.') +
+        '<section class="card">' + APP.panelHead('From the HRIS', 'Read only') +
         APP.dataList([
           ['Reports to', p.mgr ? APP.personLine(p.mgr, false, 24, false) : 'Top of the chart'],
           ['Direct reports', String(D.reports(id).length)],
@@ -191,14 +217,13 @@
     var q = (S.f.orgq || '').toLowerCase();
     var matches = q ? D.PEOPLE.filter(function (p) { return (p.name + ' ' + p.title + ' ' + p.dept + ' ' + D.locName(p.loc)).toLowerCase().indexOf(q) >= 0; }) : [];
     var body =
-      APP.callout('The chart comes from <b>' + esc(D.HRIS) + '</b> and syncs nightly. skyPerformance never edits it: reporting lines, job titles and locations change in the HRIS and appear here the next morning. Approval routing and what each role can see are both derived from this chart, which is why nothing here is editable.' +
-        (APP.isHR() ? '' : ' Everyone can see the whole chart. Records outside your reporting line stay closed, and those nodes are dimmed.'), 'is-info', 'network') +
+      APP.hint('From <b>' + esc(D.HRIS) + '</b>, synced nightly, read only.' + (APP.isHR() ? '' : ' Dimmed people are outside your reporting line.'), 'network') +
       '<div class="filter-bar">' +
       '<div class="search" style="min-width:240px"><span class="search-icon">' + ic('search', 16) + '</span><input class="input" data-input="orgq" value="' + esc(S.f.orgq || '') + '" placeholder="Find a person in the chart"></div>' +
       APP.btn('Expand all', 'btn-surface', 'chevrons-down', 'data-act="org-expand"', 'is-sm') +
       APP.btn('Collapse to my line', 'btn-surface', 'chevrons-up', 'data-act="org-collapse"', 'is-sm') +
       '<span class="fb-spacer"></span>' +
-      '<span class="mini-note">' + D.PEOPLE.length + ' people · ' + D.LOCATIONS.length + ' locations · synced ' + esc(D.TODAY) + '</span>' +
+
       APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="The org chart as CSV"', 'is-sm') +
       '</div>' +
       (q ? '<section class="card">' + APP.panelHead('Search results', matches.length + ' people match "' + esc(q) + '"') +
@@ -206,12 +231,13 @@
           return '<div class="wq-row"><span class="wq-ic">' + ic('user', 16) + '</span><div class="wq-main"><span class="wq-t">' + esc(p.name) + '</span><span class="wq-s">' + esc(p.title) + ' · ' + esc(D.locName(p.loc)) + ' · ' + esc(p.dept) + '</span></div>' +
             '<div class="wq-right">' + APP.btn('Show in chart', 'btn-surface', 'network', 'data-act="org-show" data-id="' + p.id + '"', 'is-sm') + '</div></div>';
         }).join('') + (matches.length ? '' : '<div class="table-empty">Nobody matches.</div>') + '</div></section>' : '') +
+      APP.glance([[D.PEOPLE.length, 'People'], [D.DIVISIONS.length, 'Divisions'], [D.LOCATIONS.length, 'Locations'], [APP.people().length, 'In your scope']]) +
       '<div class="org-layout">' +
       '<section class="card flush-card oc-wrap">' + chart() + '</section>' +
       rail() + '</div>';
     return APP.page({
       crumbs: [['Home', '#/home'], ['Org chart', '#/org']],
-      title: 'Org chart', desc: 'The reporting line as ' + D.HRIS + ' publishes it. Click anyone to see where they sit and what is on their record.',
+      title: 'Org chart', desc: 'Click anyone to see where they sit and what is on their record.',
       body: body
     });
   };
