@@ -5,7 +5,7 @@
 (function () {
   var D = window.SP;
   var APP = window.APP = { VIEWS: {}, ACT: {}, INPUT: {}, DD: {}, AFTER: [] };
-  var S = APP.S = { roleKey: 'manager', route: [], f: {}, lastRouteKey: '', runner: null, wizard: null, node: null };
+  var S = APP.S = { personaKey: 'dept', route: [], f: {}, lastRouteKey: '', runner: null, wizard: null };
 
   /* ---------------- primitives ---------------- */
   var esc = APP.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
@@ -125,157 +125,165 @@
   APP.dataList = function (rows) {
     return '<dl class="data-list">' + rows.map(function (r) { return '<dt class="dl-label">' + r[0] + '</dt><dd class="dl-value">' + r[1] + '</dd>'; }).join('') + '</dl>';
   };
-  /* Organization / Division / Location / Department, as a text path */
-  APP.hierPath = function (locId, dept) {
-    var l = D.loc(locId), parts = [D.ORG_SHORT];
-    if (l && l.div) parts.push(D.div(l.div).name);
-    if (l && l.name) parts.push(l.name);
+  /* Organization / Region / Community / Department, as a text path */
+  APP.hierPath = function (siteId, dept) {
+    var l = D.site(siteId), parts = [D.CONFIG.orgShort];
+    if (l && l.region) parts.push(D.region(l.region).name);
+    if (l && l.name && siteId) parts.push(l.name);
     if (dept) parts.push(dept);
     return parts.join(' / ');
   };
 
-  /* ---------------- role and scope ---------------- */
-  APP.role = function () { for (var i = 0; i < D.ROLES.length; i++) if (D.ROLES[i].key === S.roleKey) return D.ROLES[i]; return D.ROLES[1]; };
-  APP.me = function () { return P(APP.role().person); };
-  APP.is = function (k) { return S.roleKey === k; };
-  APP.isHR = function () { return S.roleKey === 'hr'; };
-  APP.isManager = function () { return S.roleKey === 'manager'; };
-  APP.canRunForms = function () { return !APP.is('employee'); };
-  APP.canCase = function () { return !APP.is('employee'); };
+  /* ---------------- persona, role and scope ----------------
+     Three roles, several personas. What a manager can reach depends on their
+     level in the chart, not on a separate permission list. Every role and level
+     name is a label an operator can change in Settings. */
+  APP.persona = function () { for (var i = 0; i < D.PERSONAS.length; i++) if (D.PERSONAS[i].key === S.personaKey) return D.PERSONAS[i]; return D.PERSONAS[1]; };
+  APP.role = function () { return APP.persona().role; };
+  APP.me = function () { return P(APP.persona().person); };
+  APP.level = function () { return APP.me().level; };
+  APP.is = function (k) { return APP.role() === k; };
+  APP.isHR = function () { return APP.role() === 'hr'; };
+  APP.isManager = function () { return APP.role() === 'manager'; };
+  APP.roleLabel = function (k) { return D.CONFIG.roles[k || APP.role()]; };
+  APP.levelLabel = function (k) { return D.CONFIG.levels[k || APP.level()]; };
+  APP.term = function (k) { return D.CONFIG.terms[k]; };
+  APP.org = function () { return D.CONFIG.org; };
+  APP.hris = function () { return D.CONFIG.hris; };
+  /* the site visit form is regional and up, which is what the client asked for */
+  APP.canVisit = function () { return APP.isHR() || D.atLeast(APP.level(), 'regional'); };
+  APP.seesVisits = function () { return APP.canVisit() || D.atLeast(APP.level(), 'community'); };
+  APP.canCoach = function () { return !APP.is('employee'); };
 
-  /* people in scope: self for an employee, the reporting branch for a manager,
-     everyone for HR. This is the whole permission model. */
   APP.people = function () {
     var me = APP.me();
     if (APP.is('employee')) return [me];
     if (APP.isHR()) return D.PEOPLE.slice();
     return [me].concat(D.branch(me.id));
   };
-  APP.team = function () { var me = APP.me(); return D.branch(me.id); };
-  APP.inScope = function (id) { return APP.people().some(function (p) { return p.id === id; }); };
-  APP.scopeLocs = function () {
+  APP.team = function () { return D.branch(APP.me().id); };
+  APP.inScope = function (id) { return APP.people().some(function (x) { return x.id === id; }); };
+  APP.scopeSites = function () {
     var out = [];
-    APP.people().forEach(function (p) { if (p.loc && out.indexOf(p.loc) < 0) out.push(p.loc); });
-    return out.length ? out : D.LOCATIONS.map(function (l) { return l.id; });
+    APP.people().forEach(function (x) { if (x.site && out.indexOf(x.site) < 0) out.push(x.site); });
+    if (APP.isHR() || !out.length) return D.SITES.map(function (x) { return x.id; });
+    return out;
   };
   APP.scopePath = function () {
     var me = APP.me();
-    if (APP.isHR()) return D.ORG_SHORT + ' / All divisions';
-    return APP.hierPath(me.loc, APP.is('employee') ? null : me.dept) + (APP.is('employee') ? ' / ' + me.name : '');
+    if (APP.isHR()) return D.CONFIG.orgShort + ' / All regions';
+    return APP.hierPath(me.site, APP.is('employee') ? null : me.dept) + (APP.is('employee') ? ' / ' + me.name : '');
   };
   APP.scopeNote = function () {
-    if (APP.is('employee')) return 'Your own record only';
-    if (APP.isHR()) return D.PEOPLE.length + ' people, ' + D.LOCATIONS.length + ' locations';
+    if (APP.is('employee')) return 'Your own file only';
+    if (APP.isHR()) return D.PEOPLE.length + ' people, ' + D.SITES.length + ' communities';
     return APP.team().length + ' direct and indirect reports';
   };
 
-  /* record filters */
-  APP.tasks = function () {
+  /* records filtered to the scope */
+  APP.records = function () {
     var me = APP.me();
-    if (APP.is('employee')) return D.TASKS.filter(function (t) { return t.emp === me.id; });
-    if (APP.isHR()) return D.TASKS.slice();
-    return D.TASKS.filter(function (t) { return APP.inScope(t.emp) || t.owner === me.id || t.emp === me.id; });
+    if (APP.is('employee')) return D.recordsFor(me.id);
+    if (APP.isHR()) return D.RECORDS.slice();
+    return D.RECORDS.filter(function (r) {
+      if (r.by === me.id) return true;
+      if (r.emp && APP.inScope(r.emp)) return true;
+      return r.group && r.group.some(function (g) { return APP.inScope(g); });
+    });
   };
-  APP.myTasks = function () { var me = APP.me(); return APP.tasks().filter(function (t) { return t.owner === me.id; }); };
-  APP.forms = function () {
+  APP.pips = function () {
     var me = APP.me();
-    if (APP.is('employee')) return D.FORMS.filter(function (f) { return f.emp === me.id; });
-    if (APP.isHR()) return D.FORMS.slice();
-    return D.FORMS.filter(function (f) { return APP.inScope(f.emp); });
+    /* nothing reaches the employee until every approver has signed off */
+    if (APP.is('employee')) return D.PIPS.filter(function (x) { return x.emp === me.id && x.status !== 'Pending approval'; });
+    if (APP.isHR()) return D.PIPS.slice();
+    return D.PIPS.filter(function (x) { return APP.inScope(x.emp) || x.by === me.id; });
+  };
+  APP.evaluations = function () {
+    var me = APP.me();
+    if (APP.is('employee')) return D.EVALUATIONS.filter(function (x) { return x.emp === me.id; });
+    if (APP.isHR()) return D.EVALUATIONS.slice();
+    return D.EVALUATIONS.filter(function (x) { return APP.inScope(x.emp) || x.by === me.id; });
+  };
+  APP.visits = function () {
+    var me = APP.me();
+    if (APP.is('employee')) return [];
+    if (APP.isHR()) return D.VISITS.slice();
+    if (APP.canVisit()) return D.VISITS.filter(function (v) { return v.by === me.id || APP.scopeSites().indexOf(v.site) >= 0; });
+    return D.VISITS.filter(function (v) { return v.ed === me.id || v.site === me.site; });
   };
   APP.actions = function () {
     var me = APP.me();
     if (APP.is('employee')) return D.ACTIONS.filter(function (a) { return a.owner === me.id; });
     if (APP.isHR()) return D.ACTIONS.slice();
-    return D.ACTIONS.filter(function (a) { return APP.inScope(a.owner) || a.owner === me.id || a.by === me.id; });
+    return D.ACTIONS.filter(function (a) { return a.owner === me.id || a.by === me.id || APP.inScope(a.owner); });
   };
-  APP.cases = function () {
-    var me = APP.me();
-    if (APP.is('employee')) return D.CASES.filter(function (c) { return c.emp === me.id; });
-    if (APP.isHR()) return D.CASES.slice();
-    return D.CASES.filter(function (c) { return APP.inScope(c.emp); });
-  };
-  APP.reviews = function () {
-    if (APP.is('employee')) return [];
-    if (APP.isHR()) return D.REVIEWS.slice();
-    var locs = APP.scopeLocs();
-    return D.REVIEWS.filter(function (v) { return locs.indexOf(v.loc) >= 0; });
-  };
-  APP.crossFor = function () {
-    var me = APP.me();
-    if (APP.is('employee')) return [];
-    if (APP.isHR()) return D.CROSS.slice();
-    return D.CROSS.filter(function (x) { return x.leader === me.id || APP.inScope(x.emp); });
-  };
+  APP.myActions = function () { var me = APP.me(); return D.ACTIONS.filter(function (a) { return a.owner === me.id; }); };
   APP.approvalsFor = function () {
     var me = APP.me();
-    return D.CASES.filter(function (c) {
-      return c.status === 'Pending approval' && c.approvals.some(function (a) { return a.who === me.id && a.state === 'Waiting'; });
+    return D.PIPS.filter(function (x) {
+      return x.status === 'Pending approval' && x.approvals.some(function (a) { return a.who === me.id && a.state === 'Waiting'; });
     });
   };
 
   /* ---------------- navigation: five destinations, no more ---------------- */
-  var NAV = {
-    employee: [
+  function nav() {
+    var t = D.CONFIG.terms;
+    if (APP.is('employee')) return [
       ['home', 'Home', 'house', 'Home'],
-      ['coaching', 'My coaching', 'clipboard-list', 'Coaching'],
-      ['develop', 'Development plan', 'target', 'Develop'],
-      ['pips', 'My improvement plan', 'clipboard-check', 'PIP'],
-      ['feedback', 'Feedback', 'message-square-text', 'Feedback'],
-      ['records', 'My documents', 'folder', 'Docs']
-    ],
-    manager: [
+      ['mycoaching', 'My ' + t.coaching.toLowerCase(), 'message-square-text', 'Coaching'],
+      ['todos', 'My to-dos', 'list-checks', 'To-dos'],
+      ['myfile', 'My file', 'folder', 'File']
+    ];
+    if (APP.isHR()) return [
       ['home', 'Home', 'house', 'Home'],
-      ['todo', 'To-do list', 'list-checks', 'To do'],
-      ['develop', 'Development', 'target', 'Develop'],
-      ['pips', 'PIPs', 'clipboard-check', 'PIPs'],
-      ['cases', 'Performance cases', 'gavel', 'Cases'],
-      ['feedback', 'Feedback', 'message-square-text', 'Feedback'],
-      ['org', 'Org chart', 'network', 'Org'],
-      ['records', 'Records', 'folder', 'Records']
-    ],
-    hr: [
-      ['home', 'Home', 'house', 'Home'],
-      ['pips', 'PIPs', 'clipboard-check', 'PIPs'],
-      ['cases', 'Performance cases', 'gavel', 'Cases'],
-      ['develop', 'Development', 'target', 'Develop'],
-      ['feedback', 'Feedback', 'message-square-text', 'Feedback'],
+      ['pips', APP.plural(t.pipShort), 'clipboard-check', APP.plural(t.pipShort)],
+      ['evaluations', 'Evaluations', 'clipboard-list', 'Evals'],
+      ['coaching', t.coaching, 'message-square-text', 'Coaching'],
+      ['visits', APP.plural(t.visit), 'building-2', 'Visits'],
       ['org', 'Org chart', 'network', 'Org'],
       ['records', 'Records', 'folder', 'Records'],
       ['settings', 'Settings', 'settings', 'Settings']
-    ]
-  };
-  APP.nav = function () { return NAV[S.roleKey] || NAV.manager; };
+    ];
+    var n = [
+      ['home', 'Home', 'house', 'Home'],
+      ['coaching', t.coaching, 'message-square-text', 'Coaching'],
+      ['todos', 'To-dos', 'list-checks', 'To-dos'],
+      ['pips', APP.plural(t.pipShort), 'clipboard-check', APP.plural(t.pipShort)],
+      ['evaluations', 'Evaluations', 'clipboard-list', 'Evals']
+    ];
+    if (APP.seesVisits()) n.push(['visits', APP.plural(t.visit), 'building-2', 'Visits']);
+    n.push(['org', 'Org chart', 'network', 'Org']);
+    n.push(['records', 'Records', 'folder', 'Records']);
+    return n;
+  }
+  APP.nav = nav;
   function allowed(r0) {
-    if (APP.nav().some(function (n) { return n[0] === r0; })) return true;
-    /* routes reachable from a screen but not in the nav */
-    if (r0 === 'todo' && APP.isHR()) return true;
-    if (r0 === 'coaching' && !APP.is('employee')) return true;
+    if (nav().some(function (x) { return x[0] === r0; })) return true;
+    if (r0 === 'mypip' && APP.is('employee')) return true;
     return false;
   }
   APP.navCount = function (route) {
-    if (route === 'todo') return APP.myTasks().filter(function (t) { return t.status === 'Open' || t.status === 'Overdue' || t.status === 'Draft'; }).length;
-    if (route === 'coaching') return APP.actions().filter(function (a) { return a.status !== 'Closed'; }).length;
-    if (route === 'cases') return APP.approvalsFor().length;
-    if (route === 'pips') return APP.is('employee')
-      ? D.PIPS.filter(function (p) { return p.emp === APP.me().id && p.status === 'Active'; }).length
-      : D.PIPS.filter(function (p) { return p.status === 'Pending approval' && p.approvals.some(function (a) { return a.who === APP.me().id && a.state === 'Waiting'; }); }).length;
-    if (route === 'feedback') return D.REVIEWS_360.filter(function (r) { return r.raters.some(function (x) { return x.who === APP.me().id && x.state === 'Waiting'; }); }).length;
+    if (route === 'todos') return APP.myActions().filter(function (a) { return a.status !== 'Closed'; }).length;
+    if (route === 'pips') return APP.approvalsFor().length;
+    if (route === 'mycoaching') return APP.records().filter(function (r) { return r.emp === APP.me().id && !r.ack; }).length;
+    if (route === 'evaluations') return APP.evaluations().filter(function (e) { return e.status === 'In progress'; }).length;
+    if (route === 'visits') return APP.visits().filter(function (v) { return v.status === 'In progress'; }).length;
     return 0;
   };
 
   /* ---------------- shell ---------------- */
   function renderShell() {
-    var r = APP.role(), me = APP.me();
-    document.getElementById('roleValue').textContent = r.label;
+    var me = APP.me();
+    document.getElementById('roleValue').textContent = APP.roleLabel() + (APP.isManager() ? ' \u00b7 ' + APP.levelLabel() : '');
     document.getElementById('rolePop').innerHTML =
       '<div class="list-item is-header">View the product as</div>' +
-      D.ROLES.map(function (x) {
-        var sel = x.key === S.roleKey, p = P(x.person);
+      D.PERSONAS.map(function (x) {
+        var sel = x.key === S.personaKey, p = P(x.person);
         return '<button class="list-item role-item' + (sel ? ' is-selected' : '') + '" role="menuitemradio" aria-checked="' + sel + '" data-act="set-role" data-role="' + x.key + '">' + av(p, 28) +
-          '<span class="ri-text"><span class="ri-title">' + esc(x.label) + '</span><span class="ri-sub">' + esc(p.name) + ', ' + esc(p.title) + '</span></span><span class="list-check">' + (sel ? ic('check', 16) : '') + '</span></button>';
+          '<span class="ri-text"><span class="ri-title">' + esc(D.CONFIG.roles[x.role]) + (x.role === 'manager' ? ' \u00b7 ' + esc(D.CONFIG.levels[P(x.person).level]) : '') + '</span>' +
+          '<span class="ri-sub">' + esc(p.name) + ', ' + esc(p.title) + '</span></span><span class="list-check">' + (sel ? ic('check', 16) : '') + '</span></button>';
       }).join('') +
-      '<div class="role-foot">' + ic('info', 14) + '<span>Switching role re-scopes every screen. Nothing else changes.</span></div>';
+      '<div class="role-foot">' + ic('info', 14) + '<span>Three roles, several examples of a manager. Rename any of them in Settings.</span></div>';
     var hs = document.getElementById('hierBtn');
     hs.innerHTML = ic('network', 14) + '<span class="hs-text">' + esc(APP.scopePath()) + '</span>' + ic('chevrons-up-down', 14);
     hs.hidden = APP.is('employee');
@@ -284,14 +292,14 @@
       '<div class="pm-head">' + av(me, 40) + '<div class="pm-id"><span class="pm-name">' + esc(me.name) + '</span><span class="pm-email">' + esc(me.title) + '</span>' +
       '<a class="pm-viewprofile" href="#/org/' + me.id + '">Open my record</a></div></div>' +
       '<hr class="divider">' +
-      '<div class="pm-scope"><span class="pm-field-label">What this role sees</span><span class="pm-scope-path">' + esc(APP.scopePath()) + '</span><span class="pm-scope-note">' + esc(r.note) + '</span></div>' +
+      '<div class="pm-scope"><span class="pm-field-label">What this role sees</span><span class="pm-scope-path">' + esc(APP.scopePath()) + '</span><span class="pm-scope-note">' + esc(APP.persona().note) + '</span></div>' +
       '<hr class="divider">' +
       '<button class="pm-item" data-act="theme"><span>Switch theme</span>' + ic('moon', 16) + '</button>' +
       '<button class="pm-item" data-act="about"><span>About this wireframe</span>' + ic('info', 16) + '</button>' +
       '<button class="btn btn-solid pm-signout" data-act="sign-out">' + ic('log-out', 16, 'btn-icon') + 'Sign out</button>';
     renderNotifs();
   }
-  function notifs() { return D.NOTIFS[S.roleKey] || []; }
+  function notifs() { return D.NOTIFS[S.personaKey] || []; }
   function renderNotifs() {
     var list = notifs(), unread = list.filter(function (n) { return n.unread; }).length;
     var b = document.getElementById('notifCount'); b.textContent = unread; b.hidden = !unread;
@@ -302,6 +310,14 @@
       }).join('') : '<div class="np-empty">Nothing waiting for you.</div>') + '</div>';
   }
   APP.renderNotifs = renderNotifs;
+  APP.plural = function (w) {
+    w = String(w || '');
+    if (/[^aeiou]y$/i.test(w)) return w.slice(0, -1) + 'ies';
+    if (/(s|x|z|ch|sh)$/i.test(w)) return w + 'es';
+    return w + 's';
+  };
+  APP.terms = function (key) { return APP.plural(APP.term(key)); };
+  APP.renderShellOnly = function () { renderShell(); APP.rerender(); };
 
   function renderNav() {
     var cur = S.route[0];
@@ -327,7 +343,7 @@
     var head = o.title ? '<header class="page-header' + (o.action ? ' has-action' : '') + '"><div><h1>' + o.title + '</h1>' + (o.desc ? '<p>' + o.desc + '</p>' : '') + '</div>' + (o.action ? '<div class="page-action">' + o.action + '</div>' : '') + '</header>' : '';
     if (o.flush) return crumbs + '<div class="content-body is-flush">' + o.body + '</div>';
     return crumbs + '<div class="content-body">' + head + (o.tabs || '') + '<div class="page-main">' + o.body + '</div></div>' +
-      '<footer class="app-footer">skyPerformance wireframe for ' + esc(D.ORG) + '. Fictional company, sample data only. <a href="#/home" data-act="about">About this wireframe</a></footer>';
+      '<footer class="app-footer">skyPerformance wireframe for ' + esc(D.CONFIG.org) + '. Fictional company, sample data only. <a href="#/home" data-act="about">About this wireframe</a></footer>';
   };
 
   /* ---------------- router ---------------- */
@@ -380,16 +396,20 @@
   /* ---------------- search ---------------- */
   APP.searchResults = function (q) {
     q = q.trim().toLowerCase(); if (!q) return '';
-    var people = APP.people().filter(function (p) { return (p.name + ' ' + p.title + ' ' + p.dept).toLowerCase().indexOf(q) >= 0; }).slice(0, 4);
-    var forms = APP.forms().filter(function (f) { return (f.id + ' ' + (D.formType(f.ft) || {}).name + ' ' + P(f.emp).name + ' ' + f.summary).toLowerCase().indexOf(q) >= 0; }).slice(0, 3);
-    var cases = APP.cases().filter(function (c) { return (c.id + ' ' + P(c.emp).name + ' ' + c.sub).toLowerCase().indexOf(q) >= 0; }).slice(0, 3);
+    var people = APP.people().filter(function (x) { return (x.name + ' ' + x.title + ' ' + x.dept).toLowerCase().indexOf(q) >= 0; }).slice(0, 4);
+    var recs = APP.records().filter(function (r) { return (r.id + ' ' + (r.topic || '') + ' ' + (r.text || '')).toLowerCase().indexOf(q) >= 0; }).slice(0, 3);
+    var pips = APP.pips().filter(function (x) { return (x.id + ' ' + P(x.emp).name + ' ' + x.offense).toLowerCase().indexOf(q) >= 0; }).slice(0, 3);
     var acts = APP.actions().filter(function (a) { return (a.id + ' ' + a.t).toLowerCase().indexOf(q) >= 0; }).slice(0, 3);
-    if (!people.length && !forms.length && !cases.length && !acts.length) return '<div class="sp-empty">Nothing in your scope matches "' + esc(q) + '".</div>';
+    if (!people.length && !recs.length && !pips.length && !acts.length) return '<div class="sp-empty">Nothing you can see matches "' + esc(q) + '".</div>';
     var h = '';
-    if (people.length) h += '<div class="sp-group">People</div>' + people.map(function (p) { return '<button class="sp-item" data-act="goto-person" data-id="' + p.id + '">' + av(p, 24) + '<span class="sp-text"><span>' + esc(p.name) + '</span><span class="sp-sub">' + esc(p.title) + ', ' + esc(D.locName(p.loc)) + '</span></span></button>'; }).join('');
-    if (forms.length) h += '<div class="sp-group">Documented forms</div>' + forms.map(function (f) { return '<button class="sp-item" data-act="open-form" data-id="' + f.id + '"><span class="sp-ic">' + ic('file-text', 16) + '</span><span class="sp-text"><span>' + esc(f.id) + ', ' + esc((D.formType(f.ft) || {}).name) + '</span><span class="sp-sub">' + esc(P(f.emp).name) + ', ' + esc(f.date) + '</span></span></button>'; }).join('');
-    if (cases.length) h += '<div class="sp-group">Performance cases</div>' + cases.map(function (c) { return '<a class="sp-item" href="#/cases/' + c.id + '"><span class="sp-ic">' + ic('gavel', 16) + '</span><span class="sp-text"><span>' + esc(c.id) + ', ' + esc(c.sub) + '</span><span class="sp-sub">' + esc(P(c.emp).name) + ', ' + esc(c.status) + '</span></span></a>'; }).join('');
-    if (acts.length) h += '<div class="sp-group">Action items</div>' + acts.map(function (a) { return '<button class="sp-item" data-act="open-action" data-id="' + a.id + '"><span class="sp-ic">' + ic('list-checks', 16) + '</span><span class="sp-text"><span>' + esc(a.t) + '</span><span class="sp-sub">' + esc(a.id) + ', owner ' + esc(P(a.owner).name) + '</span></span></button>'; }).join('');
+    if (people.length) h += '<div class="sp-group">People</div>' + people.map(function (x) {
+      return '<button class="sp-item" data-act="goto-person" data-id="' + x.id + '">' + av(x, 24) + '<span class="sp-text"><span>' + esc(x.name) + '</span><span class="sp-sub">' + esc(x.title) + ', ' + esc(D.siteName(x.site)) + '</span></span></button>'; }).join('');
+    if (recs.length) h += '<div class="sp-group">' + esc(APP.term('coaching')) + '</div>' + recs.map(function (r) {
+      return '<button class="sp-item" data-act="open-record" data-id="' + r.id + '"><span class="sp-ic">' + ic('message-square-text', 16) + '</span><span class="sp-text"><span>' + esc(r.topic || D.coachingType(r.type).name) + '</span><span class="sp-sub">' + esc(r.id) + ', ' + esc(r.on) + '</span></span></button>'; }).join('');
+    if (pips.length) h += '<div class="sp-group">' + esc(APP.term('pipShort')) + 's</div>' + pips.map(function (x) {
+      return '<a class="sp-item" href="#/pips/' + x.id + '"><span class="sp-ic">' + ic('clipboard-check', 16) + '</span><span class="sp-text"><span>' + esc(x.id) + ', ' + esc(D.pipLevel(x.level).name) + '</span><span class="sp-sub">' + esc(P(x.emp).name) + ', ' + esc(x.status) + '</span></span></a>'; }).join('');
+    if (acts.length) h += '<div class="sp-group">To-dos</div>' + acts.map(function (a) {
+      return '<button class="sp-item" data-act="open-action" data-id="' + a.id + '"><span class="sp-ic">' + ic('list-checks', 16) + '</span><span class="sp-text"><span>' + esc(a.t) + '</span><span class="sp-sub">' + esc(a.id) + ', owner ' + esc(P(a.owner).name) + '</span></span></button>'; }).join('');
     return h;
   };
 
@@ -416,13 +436,13 @@
     closePops();
   };
   A['set-role'] = function (el) {
-    S.roleKey = el.getAttribute('data-role'); S.f = {}; S.runner = null; S.wizard = null; S.node = null;
-    try { localStorage.setItem('sp-role', S.roleKey); } catch (e) {}
+    S.personaKey = el.getAttribute('data-role'); S.f = {}; S.runner = null; S.wizard = null;
+    try { localStorage.setItem('sp-persona', S.personaKey); } catch (e) {}
     APP.closeAll(); renderShell();
     if (!allowed(S.route[0])) location.hash = '#/home'; else APP.go('#/' + S.route[0]);
     APP.rerender();
-    var r = APP.role();
-    APP.toast('Viewing as ' + r.label, P(r.person).name + '. ' + APP.scopeNote() + '.', 'info');
+    APP.toast('Viewing as ' + APP.roleLabel() + (APP.isManager() ? ', ' + APP.levelLabel().toLowerCase() : ''),
+      APP.me().name + '. ' + APP.scopeNote() + '.', 'info');
   };
   A['open-nav'] = openNav; A['close-nav'] = closeNav;
   A['collapse-nav'] = function () { document.body.classList.toggle('nav-collapsed'); };
@@ -438,7 +458,7 @@
     closePops();
     host().insertAdjacentHTML('beforeend', '<div class="signed-out" data-overlay><div class="so-card card">' + brandMark(40) +
       '<h2 class="t-6 fw-bold">You are signed out</h2><p class="text-low">Shared devices sign out on their own after five minutes. Nothing from the session stays on the screen.</p>' +
-      '<button class="btn btn-solid is-lg" data-act="sign-in">' + ic('log-in', 16, 'btn-icon') + 'Sign in with ' + esc(D.ORG) + ' single sign on</button></div></div>');
+      '<button class="btn btn-solid is-lg" data-act="sign-in">' + ic('log-in', 16, 'btn-icon') + 'Sign in with ' + esc(D.CONFIG.org) + ' single sign on</button></div></div>');
   };
   A['sign-in'] = function () { APP.closeAll(); APP.go('#/home'); APP.toast('Signed in', 'Welcome back, ' + APP.me().name.split(' ')[0] + '.'); };
   A['mobile-search'] = function () {
@@ -450,30 +470,33 @@
   A.export = function (el) { APP.toast('Export queued', (el.getAttribute('data-what') || 'The file') + ' will download when it is built. Every export is logged against your name.', 'info'); };
   A.about = function () {
     closePops();
+    var t = D.CONFIG.terms;
     APP.dialog({
       title: 'About this wireframe', size: 'is-wide',
-      sub: 'skyPerformance: coaching, documentation and progressive discipline for any multi-site employer.',
-      body: APP.callout('<b>Measure, task, form, PIP, case, export.</b> One chain, and nothing falls out of it. Development plans and feedback sit alongside it and never feed it.', 'is-info', 'route') +
-        '<h3 class="section-label">Three roles</h3>' +
-        '<div class="epic-list">' + D.ROLES.map(function (r) {
-          return '<div class="epic-row"><span class="epic-id">' + esc(r.label.slice(0, 2).toUpperCase()) + '</span><div><div class="epic-name">' + esc(r.label) + ', ' + esc(P(r.person).name) + '</div><div class="epic-where">' + esc(r.note) + '</div></div></div>';
+      sub: 'skyPerformance, scoped to the client functional scope v2.',
+      body: APP.callout('One idea: managers need <b>one place to document a conversation</b>, and that record has to be there years later. Everything else hangs off it.', 'is-info', 'route') +
+        '<h3 class="section-label">Three roles, renameable</h3>' +
+        '<div class="epic-list">' + ['employee', 'manager', 'hr'].map(function (k) {
+          var ex = D.PERSONAS.filter(function (x) { return x.role === k; });
+          return '<div class="epic-row"><span class="epic-id">' + esc(D.CONFIG.roles[k].slice(0, 2).toUpperCase()) + '</span><div><div class="epic-name">' + esc(D.CONFIG.roles[k]) + '</div>' +
+            '<div class="epic-where">' + esc(ex.map(function (x) { return P(x.person).name + (x.role === 'manager' ? ' (' + D.CONFIG.levels[P(x.person).level] + ')' : ''); }).join(', ')) + '</div></div></div>';
         }).join('') + '</div>' +
         '<h3 class="section-label">Where things live</h3>' +
         '<div class="epic-list">' + [
-          ['Home', 'Dashboard, performance measures and reports.'],
-          ['To-do list', 'Touch points, trends, action items, cross group.'],
-          ['Development', 'Plans, goals and the competency ladder. About growth, never evidence.'],
-          ['PIPs', 'Fixed length recovery plans with objectives, checkpoints and a recorded outcome.'],
-          ['Performance cases', 'Progressive discipline. The usual way in is a PIP closed as not met.'],
-          ['Feedback', 'Continuous notes and the once a cycle 360. Neither is a record.'],
-          ['Org chart', 'The reporting line from the HRIS, drawn as a chart.'],
-          ['Records', 'Every documented form and review, by person, id or date.'],
-          ['Settings', 'Form types, rules, guardrails, retention. HR only.']
+          [t.coaching, 'The front door. Pick a type, write what happened, submit. The employee is notified and acknowledges.'],
+          ['To-dos', 'Action items raised anywhere, landing on the owner page. Site visit findings land on the Executive Director page.'],
+          [APP.plural(t.pipShort), 'The client PIP form: four levels, SMART actions, meetings, resolution, termination detail.'],
+          ['Evaluations', 'The exempt evaluation form, scored 1 to 4, with a total and a percentage.'],
+          [APP.plural(t.visit), '172 items across 17 sections, regional and up, with photos and an action plan.'],
+          ['Org chart', 'Read from ' + D.CONFIG.hris + '. It decides who can document whom.'],
+          ['Records', 'Any file, any date range, plus deleted records and the export log.'],
+          ['Settings', 'Rename roles, levels and terms. Choose what reaches ' + D.CONFIG.hris + '.']
         ].map(function (e) {
           return '<div class="epic-row"><span class="epic-id">' + ic('chevron-right', 14) + '</span><div><div class="epic-name">' + esc(e[0]) + '</div><div class="epic-where">' + esc(e[1]) + '</div></div></div>';
         }).join('') + '</div>' +
-        '<p class="text-low t-1 about-note">Wireframe only. ' + esc(D.ORG) + ' is a fictional company and every person, number and quotation in it is invented for design review. The hierarchy is deliberately generic, Organization to Division to Location to Department, so the product reads the same for any industry.</p>',
-      footer: APP.btn('Close', 'btn-surface', null, 'data-act="close-overlay"')
+        '<p class="text-low t-1 about-note">Wireframe only. ' + esc(D.CONFIG.org) + ' is a fictional operator and every person, number and quotation is invented for design review. The forms follow the ones the client supplied.</p>',
+      footer: APP.btn('Close', 'btn-surface', null, 'data-act="close-overlay"') +
+        APP.btn('Rename roles and terms', 'btn-soft', 'settings', 'data-act="goto" data-href="#/settings/labels"')
     });
   };
   function brandMark(size) {
@@ -490,9 +513,9 @@
   /* ---------------- boot ---------------- */
   APP.start = function () {
     var qs = new URLSearchParams(location.search);
-    var saved = null; try { saved = localStorage.getItem('sp-role'); } catch (e) {}
-    S.roleKey = qs.get('role') || saved || 'manager';
-    if (!D.ROLES.some(function (r) { return r.key === S.roleKey; })) S.roleKey = 'manager';
+    var saved = null; try { saved = localStorage.getItem('sp-persona'); } catch (e) {}
+    S.personaKey = qs.get('role') || saved || 'dept';
+    if (!D.PERSONAS.some(function (r) { return r.key === S.personaKey; })) S.personaKey = 'dept';
     try { var th = localStorage.getItem('sp-theme'); if (th) document.documentElement.setAttribute('data-theme', th); } catch (e) {}
     document.querySelectorAll('[data-ic]').forEach(fillIc);
     document.getElementById('brandMark').innerHTML = brandMark(22);

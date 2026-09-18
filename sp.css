@@ -478,3 +478,99 @@ details.collapse.is-quiet > summary:hover { color: var(--fg-high); }
 .skill-compact .skill-steps { grid-area: steps; }
 .skill-compact .skill-note { grid-area: note; white-space: nowrap; }
 .skill-compact .skill-note br, .skill-compact .skill-note br + * { display: none; }
+
+/* ---- coaching type picker ---- */
+.type-grid { display: flex; flex-direction: column; gap: var(--space-2); }
+.type-card { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border: 0; border-radius: var(--radius-3); background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--border-ui); font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.type-card:hover { background: var(--accent-2); box-shadow: inset 0 0 0 1px var(--accent-8); }
+.type-ic { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: var(--radius-3); background: var(--gray-3); color: var(--fg-low); flex: 0 0 auto; }
+.type-ic.is-good { background: var(--green-4); color: var(--green-12); }
+.type-text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.type-name { font-size: var(--fs-3); font-weight: var(--weight-medium); color: var(--fg-high); }
+.type-desc { font-size: var(--fs-1); color: var(--fg-low); }
+.type-card > svg:last-child { color: var(--fg-subtle); flex: 0 0 auto; }
+
+/* ---- multi select list ---- */
+.pick-list { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow: auto; padding: var(--space-1); border-radius: var(--radius-3); box-shadow: inset 0 0 0 1px var(--border-ui); }
+.pick-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); border: 0; border-radius: var(--radius-2); background: none; font: inherit; text-align: left; cursor: pointer; color: inherit; }
+.pick-row:hover { background: var(--gray-3); }
+.pick-row.is-on { background: var(--accent-3); }
+.pick-box { width: 18px; height: 18px; border-radius: var(--radius-2); box-shadow: inset 0 0 0 1px var(--border-ui); display: inline-flex; align-items: center; justify-content: center; background: var(--color-surface); flex: 0 0 auto; }
+.pick-row.is-on .pick-box { background: var(--accent-9); color: var(--accent-contrast); box-shadow: none; }
+.pick-text { display: flex; flex-direction: column; min-width: 0; }
+.pick-name { font-size: var(--fs-2); color: var(--fg-high); }
+.pick-sub { font-size: var(--fs-1); color: var(--fg-low); }
+.textarea.is-tall { min-height: 120px; }
+.tick { width: 22px; height: 22px; border-radius: var(--radius-2); border: 0; background: var(--color-surface); box-shadow: inset 0 0 0 1px var(--border-ui); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; color: var(--accent-contrast); }
+.tick.is-on { background: var(--success-solid); box-shadow: none; color: #fff; }
+.sign-list { display: flex; flex-direction: column; }
+.sign-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) 0; border-top: var(--stroke-thin) solid var(--border-subtle); }
+.sign-row:first-child { border-top: 0; }
+.sign-role { font-size: var(--fs-2); color: var(--fg-high); font-weight: var(--weight-medium); }
+.sign-mark { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--fg-low); }
+/* ---- evaluation scoring ---- */
+.q-btn.ev-btn { min-width: 34px; }
+.q-btn.is-on.lvl1 { background: var(--red-4); color: var(--red-12); box-shadow: inset 0 0 0 1px var(--red-8); }
+.q-btn.is-on.lvl2 { background: var(--orange-4); color: var(--orange-12); box-shadow: inset 0 0 0 1px var(--orange-8); }
+.q-btn.is-on.lvl3 { background: var(--green-4); color: var(--green-12); box-shadow: inset 0 0 0 1px var(--green-8); }
+.q-btn.is-on.lvl4 { background: var(--accent-4); color: var(--accent-12); box-shadow: inset 0 0 0 1px var(--accent-8); }
+.q-btn[disabled] { opacity: .75; cursor: default; }
+.scale-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.scale-item { display: flex; align-items: flex-start; gap: var(--space-2); }
+.scale-n { width: 26px; height: 26px; border-radius: var(--radius-2); display: inline-flex; align-items: center; justify-content: center; font-weight: var(--weight-bold); font-size: var(--fs-2); flex: 0 0 auto; background: var(--gray-4); color: var(--fg-high); }
+.scale-n.lvl1 { background: var(--red-4); color: var(--red-12); }
+.scale-n.lvl2 { background: var(--orange-4); color: var(--orange-12); }
+.scale-n.lvl3 { background: var(--green-4); color: var(--green-12); }
+.scale-n.lvl4 { background: var(--accent-4); color: var(--accent-12); }
+.scale-t { display: flex; flex-direction: column; font-size: var(--fs-1); color: var(--fg-low); line-height: 1.4; }
+.scale-t b { color: var(--fg-high); font-weight: var(--weight-medium); font-size: var(--fs-2); }
+.q-btn.vs-btn { min-width: 32px; }
+.q-btn.is-on.v2 { background: var(--green-4); color: var(--green-12); box-shadow: inset 0 0 0 1px var(--green-8); }
+.q-btn.is-on.v1 { background: var(--orange-4); color: var(--orange-12); box-shadow: inset 0 0 0 1px var(--orange-8); }
+.q-btn.is-on.v0 { background: var(--red-4); color: var(--red-12); box-shadow: inset 0 0 0 1px var(--red-8); }
+.q-icon { width: 30px; height: 32px; border: 0; border-radius: var(--radius-2); background: var(--gray-3); color: var(--fg-low); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.q-icon:hover { background: var(--accent-3); color: var(--accent-11); }
+/* ---- settings: label editing ---- */
+.cfg-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(140px, 200px); gap: var(--space-3); align-items: center; padding: var(--space-2) 0; border-top: var(--stroke-thin) solid var(--border-subtle); }
+.cfg-row:first-of-type { border-top: 0; }
+.cfg-label { display: flex; flex-direction: column; font-size: var(--fs-2); color: var(--fg-high); }
+.cfg-hint { font-size: var(--fs-1); color: var(--fg-low); }
+.cfg-input { font-weight: var(--weight-medium); }
+@media (max-width: 720px) { .cfg-row { grid-template-columns: 1fr; gap: var(--space-1); } }
+.nav-preview { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.np-chip { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-3); background: var(--accent-3); color: var(--accent-11); font-size: var(--fs-2); font-weight: var(--weight-medium); }
+
+/* Work-queue rows sit in both the wide column and the 320px rail. In the rail
+   they run out of room, so let the right-hand side drop to its own line. */
+.wq { container-type: inline-size; }
+@container (max-width: 400px) {
+  .wq-row { flex-wrap: wrap; }
+  .wq-main { flex: 1 1 100%; }
+  .wq-right { width: 100%; padding-left: 40px; justify-content: flex-start; }
+}
+
+/* ---- Contrast floors -------------------------------------------------
+   Step 11 clears 4.5:1 against steps 1-2, but these chips sit on a step-3
+   tint, where it lands around 4.2. Step 12 on the same tint clears it.
+   Avatars carry real text, so the initials have to clear it too: the
+   categorical ramp is tuned for fills, not for white type. */
+.badge.is-success { color: var(--green-12); }
+.badge.is-warning { color: var(--orange-12); }
+.badge.is-danger  { color: var(--red-12); }
+.badge.is-info    { color: var(--blue-12); }
+.callout .co-text, .callout .co-text b { color: var(--fg-high); }
+.glance-item.is-bad .glance-num, .glance-item.is-bad .glance-label { color: var(--red-12); }
+.glance-item.is-warn .glance-num, .glance-item.is-warn .glance-label { color: var(--orange-12); }
+.glance-item.is-good .glance-num, .glance-item.is-good .glance-label { color: var(--green-12); }
+.avatar.c1, .avatar.c2, .avatar.c3, .avatar.c4,
+.avatar.c5, .avatar.c6, .avatar.c7, .avatar.c8 {
+  background-image: linear-gradient(rgba(0, 0, 0, .34), rgba(0, 0, 0, .34));
+  color: #fff;
+}
+:root[data-theme="dark"] .avatar.c1, :root[data-theme="dark"] .avatar.c2,
+:root[data-theme="dark"] .avatar.c3, :root[data-theme="dark"] .avatar.c4,
+:root[data-theme="dark"] .avatar.c5, :root[data-theme="dark"] .avatar.c6,
+:root[data-theme="dark"] .avatar.c7, :root[data-theme="dark"] .avatar.c8 {
+  background-image: none;
+  color: var(--gray-1);
+}

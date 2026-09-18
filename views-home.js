@@ -1,5 +1,5 @@
-/* skyPerformance: Home. Three tabs behind one nav item, so the dashboard, the
-   measures and the reports are one destination rather than three. */
+/* skyPerformance: the dashboards. One per persona, all built from the same
+   pieces: what is waiting on you, what you owe, and what you just did. */
 (function () {
   var D = window.SP, APP = window.APP, ic = APP.ic, esc = APP.esc, P = APP.P, S = APP.S;
 
@@ -8,269 +8,187 @@
     var attrs = href ? ' class="card stat-card is-clickable" data-act="goto" data-href="' + href + '"' : ' class="card stat-card"';
     return '<' + tag + attrs + '><div class="sc-head"><span class="sc-label">' + esc(label) + '</span><span class="sc-icon">' + ic(icon, 18) + '</span></div>' +
       '<div class="sc-value">' + value + '</div>' +
-      (sub ? '<div class="sc-delta ' + (kind || '') + '">' + (kind === 'is-down' ? ic('trending-down', 14) : kind === 'is-up' ? ic('trending-up', 14) : '') + esc(sub) + '</div>' : '') +
+      (sub ? '<div class="sc-delta ' + (kind || '') + '">' + (kind === 'is-down' ? ic('trending-down', 14) : '') + esc(sub) + '</div>' : '') +
       '</' + tag + '>';
   }
   APP.stat = stat;
 
-  function taskRow(t) {
-    var e = P(t.emp), ft = D.formType(t.ft), late = t.status === 'Overdue';
-    return '<div class="wq-row"><span class="wq-ic' + (late ? ' is-late' : '') + '">' + ic(ft.ic, 16) + '</span>' +
-      '<div class="wq-main"><span class="wq-t">' + esc(t.topic) + '</span>' +
-      '<span class="wq-s">' + esc(e.name) + ', ' + esc(e.title) + ' · ' + esc(t.id) + '</span></div>' +
-      '<div class="wq-right">' + APP.statusBadge(t.status) + '<span class="mini-note">Due ' + esc(t.due) + '</span>' +
-      (t.status === 'Completed' ? APP.btn('Record', 'btn-surface', 'file-text', 'data-act="open-form" data-id="' + t.formId + '"', 'is-sm')
-        : APP.btn(t.status === 'Draft' ? 'Resume' : 'Start', 'btn-solid', 'circle-play', 'data-act="run-form" data-task="' + t.id + '"', 'is-sm')) +
-      '</div></div>';
+  function recordRow(r) {
+    var ct = D.coachingType(r.type);
+    return '<div class="wq-row"><span class="wq-ic' + (ct.tone === 'good' ? ' is-good' : '') + '">' + ic(ct.ic, 16) + '</span>' +
+      '<div class="wq-main"><span class="wq-t">' + esc(r.topic || ct.name) + '</span>' +
+      '<span class="wq-s">' + esc(ct.name) + ' · ' + (r.group ? r.group.length + ' people' : esc(P(r.emp).name)) + ' · ' + esc(r.on.replace(/^\w+ /, '')) + '</span></div>' +
+      '<div class="wq-right">' + (r.group ? APP.badge('Team', 'is-neutral') : r.ack ? APP.badge('Acknowledged', 'is-success') : APP.badge('Waiting', 'is-warning')) +
+      APP.btn('Open', 'btn-surface', null, 'data-act="open-record" data-id="' + r.id + '"', 'is-sm') + '</div></div>';
   }
-  APP.taskRow = taskRow;
 
-  /* the product in one card */
+  /* the chain, in the client's own order */
   function chainCard() {
+    var t = D.CONFIG.terms;
     var steps = [
-      ['Measure', 'Quality 86.4%', 'activity', '#/home/measures'],
-      ['Task', 'TP-4471, overdue', 'list-checks', '#/todo'],
-      ['Form', 'FM-20904 documented', 'clipboard-list', '#/records'],
-      ['PIP', 'PIP-408, 30 days', 'clipboard-check', '#/pips/PIP-408'],
-      ['Case', 'Only if not met', 'gavel', '#/cases'],
-      ['Export', 'Employee file, one package', 'package', '#/records/exports']
+      ['Document it', 'A conversation, on the day', 'message-square-text', '#/coaching'],
+      ['They acknowledge', 'Dual sign off', 'signature', '#/coaching'],
+      ['It happens again', 'A second record', 'history', '#/coaching'],
+      ['Start a ' + t.pipShort, 'Earlier records attach', 'clipboard-check', '#/pips'],
+      ['Approve, then activate', 'After you meet them', 'user-check', '#/pips'],
+      ['The file survives', 'Exported to ' + D.CONFIG.hris, 'package', '#/records/exports']
     ];
+    var allowed = APP.nav().map(function (n) { return n[0]; });
     return '<section class="card">' + APP.panelHead('How the product works', 'Click any step') +
       '<div class="chain">' + steps.map(function (s, i) {
         var route = s[3].split('/')[1];
-        var can = APP.nav().some(function (n) { return n[0] === route; }) || route === 'todo' || route === 'home';
-        return '<button class="chain-step" ' + (can ? 'data-act="goto" data-href="' + s[3] + '"' : 'data-act="toast" data-t="Outside your role" data-b="Switch role with View as in the header to see this step." data-k="info"') + '>' +
+        var can = allowed.indexOf(route) >= 0;
+        return '<button class="chain-step" ' + (can ? 'data-act="goto" data-href="' + s[3] + '"' : 'data-act="toast" data-t="Not in this role" data-b="Switch role with View as in the header." data-k="info"') + '>' +
           '<span class="chain-ic">' + ic(s[2], 16) + '</span><span class="chain-text"><span class="chain-t">' + esc(s[0]) + '</span><span class="chain-s">' + esc(s[1]) + '</span></span></button>' +
           (i < steps.length - 1 ? '<span class="chain-arrow">' + ic('chevron-right', 16) + '</span>' : '');
       }).join('') + '</div></section>';
   }
 
-  function measureCard(id, loc) {
-    var s = D.measure(id), m = D.metric(id, loc);
-    if (!m) return '';
-    var good = D.onTarget(id, m.v), moved = m.v - m.prior;
-    var better = s.dir === 'up' ? moved > 0 : moved < 0;
-    return '<button class="card sig-card" data-act="open-measure" data-id="' + id + '" data-loc="' + loc + '">' +
-      '<div class="sig-head"><span class="sig-name">' + esc(s.name) + '</span>' + APP.badge(good ? 'On target' : 'Off target', good ? 'is-success' : 'is-danger') + '</div>' +
-      '<div class="sig-val">' + s.fmt(m.v) + '</div>' +
-      '<div class="sig-target">Target ' + s.fmt(s.target) + ' · ' + D.attain(id, m.v) + '% attainment</div>' +
-      '<div class="sig-delta ' + (better ? 'is-good' : 'is-bad') + '">' + ic(moved > 0 ? 'trending-up' : moved < 0 ? 'trending-down' : 'minus', 14) +
-      (moved === 0 ? 'Flat on last month' : Math.abs(moved).toFixed(2).replace(/\.00$/, '') + ' ' + (moved > 0 ? 'up' : 'down') + ' on last month') + '</div>' +
-      APP.spark(m.trend, !better) + '<div class="sig-id">' + esc(id) + '</div></button>';
-  }
-
-  /* ---------------- tab: measures ---------------- */
-  function measures() {
-    var locs = APP.scopeLocs(), loc = S.f.mLoc || locs[0];
-    if (locs.indexOf(loc) < 0) loc = locs[0];
-    var offT = D.MEASURES.filter(function (m) { var x = D.metric(m.id, loc); return x && !D.onTarget(m.id, x.v); }).length;
-    return APP.hint('Each measure feeds the rules. A miss becomes a to-do without anyone deciding.', 'activity') +
-      APP.glance([[D.MEASURES.length, 'Measures'], [D.MEASURES.length - offT, 'On target', 'is-good'], [offT, 'Off target', offT ? 'is-bad' : ''], [D.RULES.filter(function (r) { return r.msr; }).length, 'Rules subscribed']]) +
-      '<div class="filter-bar">' + APP.dd('mLoc', locs.map(function (l) { return [l, D.locName(l)]; }), loc) +
-      '<span class="fb-spacer"></span><span class="mini-note">Refreshed nightly at 02:00 local</span>' +
-      APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="The performance measures as CSV"', 'is-sm') + '</div>' +
-      '<div class="sig-grid">' + D.MEASURES.map(function (m) { return measureCard(m.id, loc); }).join('') + '</div>' +
-      APP.sectionLabel('What subscribes to what') + '<section class="card">' +
-      APP.table([{ t: 'Measure' }, { t: 'Id' }, { t: 'Target' }, { t: 'Direction' }, { t: 'Rules subscribed' }],
-        D.MEASURES.map(function (s) {
-          var rules = D.RULES.filter(function (r) { return r.msr === s.id; });
-          return { cells: [esc(s.name), '<span class="cell-id">' + esc(s.id) + '</span>', s.fmt(s.target), s.dir === 'up' ? 'Higher is better' : 'Lower is better',
-            rules.length ? rules.map(function (r) { return esc(r.name); }).join('<br>') : '<span class="mini-note">None. Visible, but it does not generate work.</span>'] };
-        })) + '</section>';
-  }
-
-  /* ---------------- tab: reports ---------------- */
-  function reports() {
-    var locs = APP.scopeLocs();
-    var rows = D.COMPLETION.filter(function (c) { return locs.indexOf(c.scope) >= 0; });
-    var due = rows.reduce(function (n, r) { return n + r.due; }, 0) || 1;
-    var done = rows.reduce(function (n, r) { return n + r.done; }, 0);
-    var leaders = D.COMPLETION_BY_LEADER.filter(function (l) { return locs.indexOf(P(l.who).loc) >= 0; });
-    return '<div class="kpi-row">' +
-      stat('Completion', Math.round(done / due * 100) + '%', 'gauge', done + ' of ' + due + ' touch points', done / due >= 0.9 ? 'is-up' : 'is-down') +
-      stat('Managers below standard', String(leaders.filter(function (l) { return l.done / l.due < 0.9; }).length) + ' of ' + leaders.length, 'users', 'Under 90% this cycle', 'is-down') +
-      stat('Forms submitted', String(D.FORMS_BY_TYPE.reduce(function (n, t) { return n + t[1]; }, 0)), 'file-text', 'All types, this cycle') +
-      stat('Median time to complete', '13 min', 'timer', 'Observation forms only') +
-      '</div>' +
-      '<section class="card">' + APP.panelHead('Completion by location', null,
-        APP.btn('Export', 'btn-surface', 'download', 'data-act="export" data-what="Completion by location"', 'is-sm')) +
-      APP.table([{ t: 'Location' }, { t: 'Due', num: true }, { t: 'Completed', num: true }, { t: 'Completion' }, { t: 'On time', num: true }, { t: 'Managers', num: true }],
-        rows.map(function (r) {
-          var pct = Math.round(r.done / r.due * 100);
-          return { cells: [esc(r.label), String(r.due), String(r.done),
-            '<div style="min-width:120px">' + APP.progress(pct, pct >= 90 ? '' : 'is-warn') + '<span class="cell-sub">' + pct + '%</span></div>',
-            r.onTime + '%', String(r.leaders)] };
-        }), { empty: 'Nothing in scope.' }) + '</section>' +
-      '<div class="split-2">' +
-      '<section class="card">' + APP.panelHead('Completion by manager', 'Lowest first') +
-      APP.bars(leaders.map(function (l) { return [P(l.who).name, Math.round(l.done / l.due * 100)]; }).sort(function (a, b) { return a[1] - b[1]; }), function (v) { return v + '%'; }) +
-      '</section>' +
-      '<section class="card">' + APP.panelHead('Forms by type', 'This cycle.') +
-      APP.bars(D.FORMS_BY_TYPE.map(function (t) { return [D.formType(t[0]).name, t[1]]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 8)) +
-
-      '</section></div>';
-  }
-
-  /* ---------------- overview per role ---------------- */
-  function employeeOverview() {
-    var me = APP.me();
-    var acts = APP.actions(), open = acts.filter(function (a) { return a.status !== 'Closed'; });
-    var forms = APP.forms();
-    var kase = APP.cases().filter(function (c) { return c.status === 'Pending approval' || c.status === 'Open'; })[0];
-    var pip = D.PIPS.filter(function (p) { return p.emp === me.id && p.status !== 'Completed'; })[0];
-    var plan = D.devPlanFor(me.id);
-    return (kase ? APP.callout('<b>' + esc(D.STEPS.filter(function (s) { return s.key === kase.step; })[0].name) + ' pending approval.</b> <a href="#/records/letters">What it means</a>', 'is-warning', 'triangle-alert') : '') +
-      (pip ? APP.callout('<b>Improvement plan ' + esc(pip.id) + ': ' + esc(pip.status.toLowerCase()) + '.</b> <a href="#/pips/' + pip.id + '">Open the plan</a>', 'is-info', 'clipboard-check') : '') +
+  /* ---------------- employee ---------------- */
+  function employee() {
+    var me = APP.me(), recs = D.recordsFor(me.id);
+    var waiting = recs.filter(function (r) { return r.emp === me.id && !r.ack; });
+    var todos = APP.actions().filter(function (a) { return a.status !== 'Closed'; });
+    var pip = APP.pips()[0];
+    var ev = APP.evaluations()[0];
+    return (waiting.length ? APP.callout('<b>' + waiting.length + ' record is waiting for you to acknowledge.</b> <a href="#/mycoaching">Read it</a>', 'is-warning', 'hourglass') : '') +
+      (pip && pip.status !== 'Closed' ? APP.callout('<b>You are on a ' + esc(D.pipLevel(pip.level).name) + ' plan.</b> Your manager reviews it with you on the dates in the plan. <a href="#/mypip">See the plan</a>', 'is-warning', 'clipboard-check') : '') +
       '<div class="kpi-row">' +
-      stat('Action items you own', String(open.length), 'list-checks', open.filter(function (a) { return a.status === 'Overdue'; }).length + ' overdue', 'is-down', '#/coaching/actions') +
-      stat('Coaching on your record', String(forms.length), 'clipboard-list', 'Last on ' + (forms[0] ? forms[0].date : 'no record'), '', '#/coaching') +
-      stat('Recognition received', String(forms.filter(function (f) { return f.outcome === 'Recognition'; }).length), 'award', 'Counts toward your file', '', '#/records') +
-      stat('Waiting on you', kase && kase.letter ? '1' : '0', 'signature', kase && kase.letter ? 'A letter to acknowledge' : 'Nothing waiting', kase && kase.letter ? 'is-down' : '', '#/records/letters') +
+      stat('To acknowledge', String(waiting.length), 'signature', waiting.length ? 'Waiting on you' : 'Nothing waiting', waiting.length ? 'is-down' : '', '#/mycoaching') +
+      stat('Your to-dos', String(todos.length), 'list-checks', todos.filter(function (a) { return a.status === 'Overdue'; }).length + ' overdue', 'is-down', '#/todos') +
+      stat('Records about you', String(recs.length), 'message-square-text', recs.filter(function (r) { return r.type === 'CT-REC'; }).length + ' recognition', '', '#/mycoaching') +
+      stat('Next evaluation', ev ? ev.reviewDate.replace(/^\w+ /, '') : '—', 'clipboard-list', ev ? ev.status : 'Not scheduled', '', '#/myfile') +
       '</div>' +
       '<div class="split-rail">' +
-      '<section class="card">' + APP.panelHead('Your action items', open.length + ' open') +
-      '<div class="wq">' + (open.length ? open.map(APP.actionRow).join('') : '<div class="table-empty">Nothing open.</div>') + '</div></section>' +
-      (plan ? '<section class="card">' + APP.panelHead('Development plan', plan.goals.length + ' goals · review ' + esc(plan.review), APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/develop"', 'is-sm')) +
-        plan.goals.map(function (g) { return '<div class="meter" style="margin-bottom:var(--space-3)"><div class="meter-top"><span class="meter-label">' + esc(g.t) + '</span><span class="meter-val">' + g.pct + '%</span></div>' + APP.progress(g.pct) + '</div>'; }).join('') +
-        '</section>' : '') +
-      '<section class="card">' + APP.panelHead('What your manager sees') +
-      APP.dataList([
-        ['Your manager', APP.personLine(me.mgr, false, 24, false)],
-        ['Records about you', forms.length + ' documented forms'],
-        ['Measures tracked', (D.EMP_MEASURES[me.id] || []).length + ' measures']
-      ]) +
-      '<div class="path-block"><span class="path-label">Where you sit</span><span class="cell-id">' + esc(APP.hierPath(me.loc, me.dept)) + '</span></div>' +
-
-      '</section></div>' +
-      '<section class="card">' + APP.panelHead('Recent coaching', null, APP.btn('All', 'btn-surface', null, 'data-act="goto" data-href="#/coaching"', 'is-sm')) +
-      '<div class="wq">' + forms.slice(0, 5).map(function (f) {
-        var ft = D.formType(f.ft);
-        return '<div class="wq-row"><span class="wq-ic' + (f.outcome === 'Needs improvement' ? ' is-late' : f.outcome === 'Recognition' || f.outcome === 'Meets standard' ? ' is-good' : '') + '">' + ic(ft.ic, 16) + '</span>' +
-          '<div class="wq-main"><span class="wq-t">' + esc(ft.name) + ' · ' + esc(f.date) + '</span><span class="wq-s">' + esc(f.summary.slice(0, 110)) + '...</span></div>' +
-          '<div class="wq-right">' + APP.statusBadge(f.outcome) + APP.btn('Read', 'btn-surface', null, 'data-act="open-form" data-id="' + f.id + '"', 'is-sm') + '</div></div>';
-      }).join('') + '</div></section>';
+      '<section class="card">' + APP.panelHead('Recent records about you', 'In your manager’s words.', APP.btn('See all', 'btn-surface', null, 'data-act="goto" data-href="#/mycoaching"', 'is-sm')) +
+      '<div class="wq">' + (recs.length ? recs.slice(0, 5).map(recordRow).join('') : '<div class="table-empty">Nothing yet.</div>') + '</div></section>' +
+      '<section class="card">' + APP.panelHead('Your to-dos', todos.length + ' open') +
+      '<div class="wq">' + (todos.length ? todos.slice(0, 4).map(APP.actionRow).join('') : '<div class="table-empty">Nothing open.</div>') + '</div></section>' +
+      '</div>';
   }
 
-  function managerOverview() {
-    var me = APP.me(), tasks = APP.myTasks();
-    var open = tasks.filter(function (t) { return t.status !== 'Completed'; });
-    var acts = APP.actions().filter(function (a) { return a.status !== 'Closed'; });
-    var comp = D.COMPLETION_BY_LEADER.filter(function (c) { return c.who === me.id; })[0] || { due: 1, done: 0 };
-    var pct = Math.round(comp.done / comp.due * 100);
-    var team = APP.team();
-    return '<div class="kpi-row">' +
-      stat('Touch points due', String(open.length), 'list-checks', open.filter(function (t) { return t.status === 'Overdue'; }).length + ' overdue', 'is-down', '#/todo') +
-      stat('Action items open', String(acts.length), 'square-check-big', acts.filter(function (a) { return a.status === 'Overdue'; }).length + ' overdue', 'is-down', '#/todo/actions') +
-      stat('Your completion', pct + '%', 'gauge', comp.done + ' of ' + comp.due + ' this cycle', pct >= 90 ? 'is-up' : 'is-down', '#/home/reports') +
-      stat('Your team', String(team.length), 'users', 'Direct and indirect reports', '', '#/org') +
-      '</div>' +
-      (open.filter(function (t) { return t.status === 'Overdue'; }).length ?
-        APP.callout('<b>' + open.filter(function (t) { return t.status === 'Overdue'; }).length + ' touch point overdue.</b> <a href="#/todo">Work the list</a>', 'is-warning', 'triangle-alert') : '') +
-      APP.sectionLabel('Your people') +
-      APP.glance([
-        [D.DEV_PLANS.filter(function (p) { return APP.inScope(p.emp) && p.emp !== me.id && p.status === 'Active'; }).length, 'Development plans', '', '#/develop'],
-        [D.PIPS.filter(function (p) { return APP.inScope(p.emp) && p.status === 'Active'; }).length, 'Active PIPs', '', '#/pips'],
-        [D.PIPS.filter(function (p) { return APP.inScope(p.emp) && p.status === 'Pending approval'; }).length, 'PIPs pending', 'is-warn', '#/pips/pending'],
-        [APP.cases().filter(function (c) { return c.status === 'Open' || c.status === 'Pending approval'; }).length, 'Open cases', '', '#/cases'],
-        [D.FEEDBACK.filter(function (f) { return APP.inScope(f.to) && f.kind === 'Praise'; }).length, 'Praise this month', 'is-good', '#/feedback']
-      ]) +
-      chainCard() +
-      '<div class="split-rail">' +
-      '<section class="card">' + APP.panelHead('Your work today', open.length + ' due',
-        APP.btn('Open the to-do list', 'btn-surface', null, 'data-act="goto" data-href="#/todo"', 'is-sm')) +
-      '<div class="wq">' + (open.length ? open.slice(0, 6).map(taskRow).join('') : '<div class="table-empty">Nothing due. Rare, and worth enjoying.</div>') + '</div></section>' +
-      '<section class="card">' + APP.panelHead('Your team', esc(APP.hierPath(me.loc, me.dept))) +
-      '<div class="wq">' + team.slice(0, 6).map(function (p) {
-        var due = D.TASKS.filter(function (t) { return t.emp === p.id && t.status !== 'Completed'; }).length;
-        var open2 = D.ACTIONS.filter(function (a) { return a.owner === p.id && a.status !== 'Closed'; }).length;
-        return '<button class="wq-row" data-act="goto-person" data-id="' + p.id + '" style="width:100%;border:0;background:none;cursor:pointer;text-align:left">' +
-          APP.av(p, 32) + '<span class="wq-main"><span class="wq-t">' + esc(p.name) + '</span><span class="wq-s">' + esc(p.title) + '</span></span>' +
-          '<span class="wq-right">' + (due ? APP.badge(due + ' due', 'is-info') : '') + (open2 ? APP.badge(open2 + ' open', 'is-warning') : '') + ic('chevron-right', 16) + '</span></button>';
-      }).join('') + '</div>' +
-      APP.btn('Open the org chart', 'btn-soft', 'network', 'data-act="goto" data-href="#/org"', 'is-sm') +
-      '</section></div>' +
-      '<section class="card">' + APP.panelHead('Action items', acts.length + ' open',
-        APP.btn('All action items', 'btn-surface', null, 'data-act="goto" data-href="#/todo/actions"', 'is-sm')) +
-      '<div class="wq">' + acts.slice(0, 5).map(APP.actionRow).join('') + '</div></section>';
-  }
-
-  function hrOverview() {
+  /* ---------------- department head and Executive Director ---------------- */
+  function manager() {
+    var me = APP.me(), recs = APP.records();
+    var mineRaised = recs.filter(function (r) { return r.by === me.id; });
+    var todos = APP.actions().filter(function (a) { return a.owner === me.id && a.status !== 'Closed'; });
+    var fromVisit = todos.filter(function (a) { return a.fromKind === 'visit'; });
+    var pipsPending = APP.pips().filter(function (x) { return x.status === 'Pending approval'; });
     var approvals = APP.approvalsFor();
-    var byStatus = {};
-    D.CASES.forEach(function (c) { var k = c.disposition || c.status; byStatus[k] = (byStatus[k] || 0) + 1; });
-    var pipQ = D.PIPS.filter(function (p) { return p.status === 'Pending approval' && p.approvals.some(function (a) { return a.who === 'grant' && a.state === 'Waiting'; }); });
-    return (approvals.length || pipQ.length ? APP.callout('<b>Waiting on you:</b> ' + approvals.length + ' case' + (approvals.length === 1 ? '' : 's') + ', ' + pipQ.length + ' PIP' + (pipQ.length === 1 ? '' : 's') + '. <a href="#/cases">Cases</a> · <a href="#/pips/pending">PIPs</a>', 'is-warning', 'gavel') : '') +
+    var evalsOpen = APP.evaluations().filter(function (e) { return e.status === 'In progress'; });
+    var noAck = recs.filter(function (r) { return r.emp && !r.ack; });
+    var visits = APP.visits().filter(function (v) { return v.status === 'In progress'; });
+
+    return (approvals.length ? APP.callout('<b>' + approvals.length + ' ' + APP.term('pipShort') + ' needs your approval.</b> <a href="#/pips">Open the queue</a>', 'is-warning', 'gavel') : '') +
+      (fromVisit.length ? APP.callout('<b>' + fromVisit.length + ' to-dos came from the site visit.</b> ' + esc(P(fromVisit[0].by).name) + ' assigned them with owners and dates. <a href="#/todos">Work the list</a>', 'is-info', 'building-2') : '') +
+      (visits.length ? APP.callout('<b>' + esc(P(visits[0].by).name) + ' is on site now.</b> ' + visits[0].answered + ' of 172 answered. <a href="#/visits/' + visits[0].id + '">Follow along</a>', 'is-info', 'building-2') : '') +
       '<div class="kpi-row">' +
-      stat('Cases in your queue', String(approvals.length), 'gavel', 'Waiting on HR review', approvals.length ? 'is-down' : '', '#/cases') +
-      stat('Open steps', String(byStatus.Open || 0), 'shield', 'Across all locations', '', '#/cases') +
-      stat('Expiring in 30 days', '2', 'hourglass', 'They leave the ladder automatically', '', '#/cases') +
-      stat('File exports this month', '4', 'package', '2 for appeals, 2 for audit', '', '#/records/exports') +
+      stat('Your to-dos', String(todos.length), 'list-checks', todos.filter(function (a) { return a.status === 'Overdue'; }).length + ' overdue', 'is-down', '#/todos') +
+      stat('Documented this month', String(mineRaised.length), 'message-square-text', mineRaised.filter(function (r) { return r.type === 'CT-REC'; }).length + ' recognition', '', '#/coaching') +
+      stat('Waiting on acknowledgement', String(noAck.length), 'hourglass', noAck.length ? 'Employees have not read them' : 'All acknowledged', noAck.length ? 'is-down' : '', '#/coaching') +
+      stat('Evaluations open', String(evalsOpen.length), 'clipboard-list', evalsOpen.length ? 'Due this cycle' : 'None open', '', '#/evaluations') +
       '</div>' +
-      APP.glance([
-        [D.PIPS.filter(function (p) { return p.status === 'Active'; }).length, 'Active PIPs', '', '#/pips'],
-        [D.PIPS.filter(function (p) { return p.status === 'Active' && p.objectives.some(function (o) { return o.status === 'Behind'; }); }).length, 'PIPs behind', 'is-bad', '#/pips'],
-        [D.DEV_PLANS.filter(function (p) { return p.status === 'Active'; }).length, 'Development plans', '', '#/develop'],
-        [D.REVIEWS_360.filter(function (r) { return r.status === 'In progress'; }).length, '360s in progress', '', '#/feedback/threesixty']
-      ]) +
       chainCard() +
       '<div class="split-rail">' +
-      '<section class="card">' + APP.panelHead('Approval queue', approvals.length + ' waiting', APP.btn('All cases', 'btn-surface', null, 'data-act="goto" data-href="#/cases"', 'is-sm')) +
-      '<div class="wq">' + (approvals.length ? approvals.map(function (c) {
-        var e = P(c.emp);
-        return '<div class="wq-row"><span class="wq-ic is-late">' + ic('gavel', 16) + '</span><div class="wq-main"><span class="wq-t">' + esc(c.id) + ' · ' + esc(D.STEPS.filter(function (s) { return s.key === c.step; })[0].name) + '</span>' +
-          '<span class="wq-s">' + esc(e.name) + ', ' + esc(e.title) + ' · ' + esc(D.locName(c.loc)) + ' · ' + c.evidence.length + ' forms attached</span></div>' +
-          '<div class="wq-right">' + APP.statusBadge(c.status) + APP.btn('Review', 'btn-solid', null, 'data-act="goto" data-href="#/cases/' + c.id + '"', 'is-sm') + '</div></div>';
-      }).join('') : '<div class="table-empty">Nothing waiting on you.</div>') + '</div></section>' +
-      '<section class="card">' + APP.panelHead('Cases by state', 'All locations.') +
-      APP.bars(Object.keys(byStatus).map(function (k) { return [k, byStatus[k]]; })) +
-
-      '</section></div>' +
-      '<section class="card">' + APP.panelHead('Defensibility check', 'Can the file answer an appeal?') +
-      APP.table([{ t: 'Question' }, { t: 'Where it comes from' }, { t: 'Status' }], [
-        ['Was the employee coached before the step was issued', '4 forms attached to PC-3391, dated 22 Jul to 12 Sep', APP.statusBadge('Completed')],
-        ['Did the employee receive the letter', 'Acknowledgement timestamp on the record', APP.statusBadge('Completed')],
-        ['Who approved it and when', 'Approval chain with four recorded decisions', APP.statusBadge('Pending approval')],
-        ['Was the record altered after submission', 'Immutable submission, a correction creates a new version', APP.statusBadge('Completed')],
-        ['Can the whole file be produced', 'Employee file export, one package', APP.statusBadge('Completed')]
-      ].map(function (r) { return { cells: r }; })) + '</section>';
+      '<section class="card">' + APP.panelHead('Recently documented', 'Everything you and your team have filed.',
+        APP.btn('New ' + APP.term('coaching').toLowerCase(), 'btn-solid', 'plus', 'data-act="new-coaching"', 'is-sm')) +
+      '<div class="wq">' + (recs.length ? recs.slice(0, 6).map(recordRow).join('') : '<div class="table-empty">Nothing yet. Start with a recognition.</div>') + '</div></section>' +
+      '<div class="stack-4">' +
+      '<section class="card">' + APP.panelHead('Your team', APP.team().length + ' people') +
+      '<div class="wq">' + APP.team().slice(0, 6).map(function (p) {
+        var n = D.recordsFor(p.id).length;
+        var open = D.ACTIONS.filter(function (a) { return a.owner === p.id && a.status !== 'Closed'; }).length;
+        return '<button class="wq-row" data-act="goto-person" data-id="' + p.id + '" style="width:100%;border:0;background:none;cursor:pointer;text-align:left">' +
+          APP.av(p, 30) + '<span class="wq-main"><span class="wq-t">' + esc(p.name) + '</span><span class="wq-s">' + esc(p.title) + '</span></span>' +
+          '<span class="wq-right">' + (n ? APP.badge(n + ' records', 'is-neutral') : APP.badge('No records', 'is-warning')) +
+          (open ? APP.badge(open + ' to-do', 'is-info') : '') + ic('chevron-right', 16) + '</span></button>';
+      }).join('') + '</div></section>' +
+      (pipsPending.length ? '<section class="card">' + APP.panelHead(APP.term('pipShort') + 's in flight') +
+        '<div class="wq">' + pipsPending.map(function (x) {
+          return '<div class="wq-row"><span class="wq-ic is-late">' + ic('clipboard-check', 16) + '</span>' +
+            '<div class="wq-main"><span class="wq-t">' + esc(P(x.emp).name) + ' · ' + esc(D.pipLevel(x.level).name) + '</span>' +
+            '<span class="wq-s">' + esc(x.id) + ' · with ' + esc(P(x.next).name) + '</span></div>' +
+            '<div class="wq-right">' + APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/pips/' + x.id + '"', 'is-sm') + '</div></div>';
+        }).join('') + '</div></section>' : '') +
+      '</div></div>';
   }
 
-  APP.VIEWS.home = function (r) {
-    var emp = APP.is('employee'), tab = r[1] || 'overview';
-    if (emp) {
-      return APP.page({ crumbs: [['Home', '#/home']], title: 'Your record, ' + esc(APP.me().name.split(' ')[0]),
-        desc: 'Everything documented about your work, in the words it was written in.', body: employeeOverview() });
-    }
-    var tabs = APP.tabs([
-      ['overview', 'Overview', '#/home'],
-      ['measures', 'Performance measures', '#/home/measures', D.MEASURES.length],
-      ['reports', 'Reports', '#/home/reports']
-    ], tab);
-    var body = tab === 'measures' ? measures() : tab === 'reports' ? reports() : (APP.isHR() ? hrOverview() : managerOverview());
+  /* ---------------- regional ---------------- */
+  function regional() {
+    var visits = APP.visits();
+    var inProg = visits.filter(function (v) { return v.status === 'In progress'; });
+    var due = visits.filter(function (v) { return v.status === 'Scheduled'; });
+    var approvals = APP.approvalsFor();
+    var sent = D.ACTIONS.filter(function (a) { return a.by === APP.me().id; });
+    return (inProg.length ? APP.callout('<b>' + esc(D.siteName(inProg[0].site)) + ' is in progress.</b> ' + inProg[0].answered + ' of 172 answered. <a href="#/visits/' + inProg[0].id + '">Carry on</a>', 'is-info', 'building-2') : '') +
+      (approvals.length ? APP.callout('<b>' + approvals.length + ' ' + APP.term('pipShort') + ' waiting on you.</b> <a href="#/pips">Open the queue</a>', 'is-warning', 'gavel') : '') +
+      '<div class="kpi-row">' +
+      stat(APP.terms('site') + ' in your region', String(APP.scopeSites().length), 'building-2', 'Assigned to you', '', '#/org') +
+      stat('Visits complete', String(visits.filter(function (v) { return v.status === 'Complete'; }).length), 'clipboard-check', due.length + ' scheduled', '', '#/visits') +
+      stat('Actions you assigned', String(sent.length), 'list-checks', sent.filter(function (a) { return a.status === 'Closed'; }).length + ' closed by the community', '', '#/todos/raised') +
+      stat(APP.term('pipShort') + 's to approve', String(approvals.length), 'gavel', approvals.length ? 'Waiting on you' : 'Nothing waiting', approvals.length ? 'is-down' : '', '#/pips') +
+      '</div>' +
+      chainCard() +
+      '<div class="split-rail">' +
+      '<section class="card">' + APP.panelHead(APP.terms('visit'), 'Your communities.',
+        APP.btn('Start a visit', 'btn-solid', 'circle-play', 'data-act="new-visit"', 'is-sm')) +
+      '<div class="wq">' + visits.map(function (v) {
+        return '<div class="wq-row"><span class="wq-ic">' + ic('building-2', 16) + '</span>' +
+          '<div class="wq-main"><span class="wq-t">' + esc(D.siteName(v.site)) + '</span>' +
+          '<span class="wq-s">' + esc(v.id) + ' · ' + esc(v.date) + ' · Executive Director ' + esc(P(v.ed).name) + (v.score != null ? ' · ' + v.score + '%' : '') + '</span></div>' +
+          '<div class="wq-right">' + APP.statusBadge(v.status === 'Complete' ? 'Completed' : v.status) +
+          APP.btn(v.status === 'Complete' ? 'Open' : v.status === 'Scheduled' ? 'Start' : 'Resume', v.status === 'Complete' ? 'btn-surface' : 'btn-solid', null, 'data-act="goto" data-href="#/visits/' + v.id + '"', 'is-sm') + '</div></div>';
+      }).join('') + '</div></section>' +
+      '<section class="card">' + APP.panelHead('Where the actions went', 'Assigned during a visit, worked by the community.') +
+      '<div class="wq">' + (sent.length ? sent.slice(0, 6).map(APP.actionRow).join('') : '<div class="table-empty">Nothing assigned yet.</div>') + '</div></section>' +
+      '</div>';
+  }
+
+  /* ---------------- HR ---------------- */
+  function hr() {
+    var approvals = APP.approvalsFor();
+    var pips = D.PIPS, byLevel = {};
+    pips.forEach(function (x) { var n = D.pipLevel(x.level).name; byLevel[n] = (byLevel[n] || 0) + 1; });
+    var noAck = D.RECORDS.filter(function (r) { return r.emp && !r.ack; }).length;
+    return (approvals.length ? APP.callout('<b>' + approvals.length + ' ' + APP.term('pipShort') + ' in your queue.</b> <a href="#/pips">Open it</a>', 'is-warning', 'gavel') : '') +
+      APP.callout('<b>The retention period for terminated files is still unset.</b> Until it is, nothing is deleted. <a href="#/settings/retention">Set it</a>', 'is-warning', 'triangle-alert') +
+      '<div class="kpi-row">' +
+      stat('In your queue', String(approvals.length), 'gavel', approvals.length ? 'Waiting on HR review' : 'Nothing waiting', approvals.length ? 'is-down' : '', '#/pips') +
+      stat('Records this cycle', String(D.RECORDS.length), 'message-square-text', noAck + ' not acknowledged', noAck ? 'is-down' : '', '#/coaching') +
+      stat('Active plans', String(pips.filter(function (x) { return x.status === 'Active'; }).length), 'clipboard-check', 'Across all communities', '', '#/pips') +
+      stat('Evaluations complete', String(D.EVALUATIONS.filter(function (e) { return e.status === 'Complete'; }).length) + ' of ' + D.EVALUATIONS.length, 'clipboard-list', 'This cycle', '', '#/evaluations') +
+      '</div>' +
+      chainCard() +
+      '<div class="split-rail">' +
+      '<section class="card">' + APP.panelHead('Approval queue', 'Nothing activates until every approval is in.', APP.btn('All plans', 'btn-surface', null, 'data-act="goto" data-href="#/pips"', 'is-sm')) +
+      '<div class="wq">' + (approvals.length ? approvals.map(function (x) {
+        return '<div class="wq-row"><span class="wq-ic is-late">' + ic('clipboard-check', 16) + '</span>' +
+          '<div class="wq-main"><span class="wq-t">' + esc(P(x.emp).name) + ' · ' + esc(D.pipLevel(x.level).name) + '</span>' +
+          '<span class="wq-s">' + esc(x.offense) + ' · ' + esc(x.evidence.length) + ' records attached · ' + esc(D.siteName(x.site)) + '</span></div>' +
+          '<div class="wq-right">' + APP.btn('Review', 'btn-solid', null, 'data-act="goto" data-href="#/pips/' + x.id + '"', 'is-sm') + '</div></div>';
+      }).join('') : '<div class="table-empty">Nothing waiting on you.</div>') + '</div></section>' +
+      '<div class="stack-4">' +
+      '<section class="card">' + APP.panelHead('Plans by level') +
+      APP.bars(Object.keys(byLevel).map(function (k) { return [k, byLevel[k]]; })) + '</section>' +
+      '<section class="card">' + APP.panelHead('Defensibility', 'What an appeal asks for.') +
+      '<ul class="tick-list">' +
+      '<li>' + ic('check', 14) + '<span>Coaching before the plan: ' + D.PIPS.filter(function (x) { return x.evidence.length; }).length + ' of ' + D.PIPS.length + ' plans have records attached</span></li>' +
+      '<li>' + ic('check', 14) + '<span>Employee acknowledgement recorded on every record</span></li>' +
+      '<li>' + ic('check', 14) + '<span>Approvals timestamped and attributed</span></li>' +
+      '<li>' + ic('check', 14) + '<span>File exports to ' + esc(D.CONFIG.hris) + ' on termination</span></li>' +
+      '</ul></section></div></div>';
+  }
+
+  APP.VIEWS.home = function () {
+    var k = S.personaKey;
+    var body = k === 'employee' ? employee() : k === 'regional' ? regional() : k === 'hr' ? hr() : manager();
+    var title = k === 'employee' ? 'Your record, ' + APP.me().name.split(' ')[0]
+      : k === 'hr' ? 'HR overview' : 'Good morning, ' + APP.me().name.split(' ')[0];
     return APP.page({
       crumbs: [['Home', '#/home']],
-      title: APP.isHR() ? 'HR overview' : 'Good morning, ' + esc(APP.me().name.split(' ')[0]),
-      desc: D.TODAY + ' · ' + D.CYCLE + ' · ' + esc(APP.scopePath()),
-      tabs: tabs, body: body
-    });
-  };
-
-  APP.ACT['open-measure'] = function (el) {
-    var id = el.getAttribute('data-id'), loc = el.getAttribute('data-loc');
-    var s = D.measure(id), m = D.metric(id, loc);
-    APP.dialog({
-      title: s.name, sub: D.locName(loc) + ' · ' + s.domain,
-      body: APP.dataList([
-        ['Measure id', '<span class="cell-id">' + esc(id) + '</span>'],
-        ['Current', s.fmt(m.v)], ['Target', s.fmt(s.target)],
-        ['Attainment', D.attain(id, m.v) + '%'],
-        ['Direction', s.dir === 'up' ? 'Higher is better' : 'Lower is better'],
-        ['Refresh cadence', 'Nightly, 02:00 local'],
-        ['Source', 'Operational reporting, joined to the HRIS person id'],
-        ['Rules subscribed', D.RULES.filter(function (r) { return r.msr === id; }).map(function (r) { return esc(r.name); }).join('<br>') || 'None yet']
-      ]) + '<div style="margin-top:var(--space-4)">' + APP.spark(m.trend, !D.onTarget(id, m.v)) + '<p class="mini-note">Last six months.</p></div>',
-      footer: APP.btn('Close', 'btn-surface', null, 'data-act="close-overlay"') +
-        (APP.isHR() ? APP.btn('See the rules', 'btn-soft', 'sliders-horizontal', 'data-act="goto" data-href="#/settings/rules"') : '')
+      title: title,
+      desc: D.TODAY + ' · ' + APP.roleLabel() + (APP.isManager() ? ', ' + APP.levelLabel().toLowerCase() : '') + ' · ' + APP.scopePath(),
+      body: body
     });
   };
 })();

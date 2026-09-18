@@ -1,89 +1,94 @@
-/* skyPerformance wireframe: sample data.
-   Deliberately industry neutral. The hierarchy is Organization > Division >
-   Location > Department > Employee, which is the shape most HRIS systems
-   export, so the product reads the same for a retailer, a manufacturer, a
-   contact centre or a care provider. Fictional company, fictional people,
-   fabricated numbers. */
+/* skyPerformance wireframe: sample data, scoped to the customer functional scope v2.
+   Fictional operator, fictional people, fabricated numbers. The structures
+   (coaching types, PIP levels, evaluation sections, site visit form) follow the
+   forms the client supplied. */
 (function () {
   var D = window.SP = {};
 
-  D.ORG = 'Northwind Group';
-  D.ORG_SHORT = 'Northwind';
-  D.ORG_DESC = 'Multi-site operations and customer service business, 6 locations';
-  D.TODAY = 'Tue 16 Sep 2026';
-  D.CYCLE = 'Q3 2026 (Jul to Sep)';
-  D.HRIS = 'Workforce HRIS';
+  /* ---------------- configuration ----------------
+     Everything an operator can rename lives here. Roles, levels and the name of
+     the system of record are all labels, never logic. Settings edits this. */
+  D.CONFIG = {
+    org: 'Riverbend Senior Living',
+    orgShort: 'Riverbend',
+    hris: 'Riverbend HRIS',
+    roles: { employee: 'Employee', manager: 'Manager', hr: 'HR' },
+    levels: { staff: 'Team member', dept: 'Department head', community: 'Executive Director', regional: 'Regional Director', corporate: 'Corporate' },
+    terms: { coaching: 'Coaching', pip: 'Performance Improvement Plan', pipShort: 'PIP', eval: 'Annual evaluation', visit: 'Site visit', site: 'Community' }
+  };
+  D.cfg = function (path) {
+    var parts = path.split('.'), v = D.CONFIG;
+    for (var i = 0; i < parts.length; i++) v = v[parts[i]];
+    return v;
+  };
+  D.TODAY = 'Fri 18 Sep 2026';
+  D.CYCLE = 'FY 2026';
 
-  /* ---------------- hierarchy (synced from the HRIS, read only here) ---------------- */
-  D.LEVELS = ['Organization', 'Division', 'Location', 'Department', 'Employee'];
-  D.DIVISIONS = [
-    { id: 'DIV-N', name: 'Northern Division', lead: 'alexis' },
-    { id: 'DIV-S', name: 'Southern Division', lead: 'dominic' }
+  /* ---------------- hierarchy, synced from the system of record ---------------- */
+  D.REGIONS = [
+    { id: 'RG-MW', name: 'Midwest', lead: 'alexis' },
+    { id: 'RG-MA', name: 'Mid-Atlantic', lead: 'dominic' }
   ];
-  D.LOCATIONS = [
-    { id: 'LOC-AS', name: 'Ashford', div: 'DIV-N', city: 'Ashford', head: 'curtis', size: 96, type: 'Operations and service centre' },
-    { id: 'LOC-BR', name: 'Brackenfield', div: 'DIV-N', city: 'Brackenfield', head: 'ruben', size: 120, type: 'Operations and service centre' },
-    { id: 'LOC-CA', name: 'Calderton', div: 'DIV-N', city: 'Calderton', head: 'bernadette', size: 74, type: 'Service centre' },
-    { id: 'LOC-DU', name: 'Dunmore', div: 'DIV-S', city: 'Dunmore', head: 'harriet', size: 110, type: 'Operations and service centre' },
-    { id: 'LOC-EA', name: 'Eastgate', div: 'DIV-S', city: 'Eastgate', head: 'jonah', size: 88, type: 'Operations centre' },
-    { id: 'LOC-FA', name: 'Fairhaven', div: 'DIV-S', city: 'Fairhaven', head: 'harriet', size: 64, type: 'Service centre' }
+  D.SITES = [
+    { id: 'CM-CH', name: 'Cedar Hollow', region: 'RG-MW', city: 'Fort Wayne, IN', beds: 96, ed: 'curtis', type: 'Assisted living and memory care' },
+    { id: 'CM-MC', name: 'Maple Court', region: 'RG-MW', city: 'Kokomo, IN', beds: 74, ed: 'ruben', type: 'Assisted living' },
+    { id: 'CM-LV', name: 'Lakeview Manor', region: 'RG-MW', city: 'Elkhart, IN', beds: 110, ed: 'bernadette', type: 'Assisted living and memory care' },
+    { id: 'CM-SB', name: 'Stonebridge Place', region: 'RG-MA', city: 'Hershey, PA', beds: 88, ed: 'harriet', type: 'Personal care' },
+    { id: 'CM-WC', name: 'Willow Crossing', region: 'RG-MA', city: 'Altoona, PA', beds: 64, ed: 'jonah', type: 'Assisted living' },
+    { id: 'CM-BG', name: 'Birch Grove', region: 'RG-MA', city: 'Dover, DE', beds: 72, ed: 'harriet', type: 'Assisted living' }
   ];
-  D.DEPTS = ['Operations', 'Customer Service', 'Quality', 'Logistics', 'Technical Support', 'Facilities'];
+  D.DEPTS = ['Clinical', 'Dining', 'Life Enrichment', 'Maintenance', 'Memory Care', 'Business Office', 'Housekeeping', 'Marketing'];
 
-  /* ---------------- people ---------------- */
-  function p(id, name, title, dept, loc, level, mgr, hired, extra) {
-    var o = { id: id, name: name, title: title, dept: dept, loc: loc, level: level, mgr: mgr, hired: hired,
+  function p(id, name, title, dept, site, level, mgr, hired, extra) {
+    var o = { id: id, name: name, title: title, dept: dept, site: site, level: level, mgr: mgr, hired: hired,
       ini: name.split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2).toUpperCase() };
     if (extra) for (var k in extra) o[k] = extra[k];
     return o;
   }
-  /* level: org | division | location | dept | staff. mgr is the HRIS reporting line. */
   D.PEOPLE = [
-    p('nadine', 'Nadine Okonkwo', 'Chief Operating Officer', 'Executive', null, 'org', null, 'Apr 2017'),
-    p('alexis', 'Alexis Moreau', 'Division Director', 'Operations', null, 'division', 'nadine', 'Mar 2021', { div: 'DIV-N' }),
-    p('dominic', 'Dominic Sarr', 'Division Director', 'Operations', null, 'division', 'nadine', 'Aug 2019', { div: 'DIV-S' }),
-    p('grant', 'Grant Ihejirika', 'HR Business Partner', 'People', null, 'org', 'nadine', 'Jan 2018'),
-    p('talia', 'Talia Brennan', 'Head of Quality and Compliance', 'Quality', null, 'org', 'nadine', 'Jun 2020'),
+    p('nadine', 'Nadine Okonkwo', 'VP of Operations', 'Operations', null, 'corporate', null, 'Apr 2017'),
+    p('grant', 'Grant Ihejirika', 'HR Business Partner', 'People', null, 'corporate', 'nadine', 'Jan 2018'),
+    p('alexis', 'Alexis Moreau', 'Regional Director of Operations', 'Operations', null, 'regional', 'nadine', 'Mar 2021', { region: 'RG-MW' }),
+    p('dominic', 'Dominic Sarr', 'Regional Director of Operations', 'Operations', null, 'regional', 'nadine', 'Aug 2019', { region: 'RG-MA' }),
+    p('talia', 'Talia Brennan', 'Regional Director of Clinical Services', 'Clinical', null, 'regional', 'nadine', 'Jun 2020', { region: 'RG-MW', clinical: true }),
 
-    /* Ashford */
-    p('curtis', 'Curtis Nakamura', 'Location Director', 'Operations', 'LOC-AS', 'location', 'alexis', 'Sep 2019'),
-    p('priya', 'Priya Raghavan', 'Operations Manager', 'Operations', 'LOC-AS', 'dept', 'curtis', 'Apr 2022'),
-    p('dana', 'Dana Whitfield', 'Operations Associate', 'Operations', 'LOC-AS', 'staff', 'priya', 'Feb 2025'),
-    p('lorna', 'Lorna Bekele', 'Operations Associate', 'Operations', 'LOC-AS', 'staff', 'priya', 'Nov 2023'),
-    p('trevor', 'Trevor Ansley', 'Operations Associate', 'Operations', 'LOC-AS', 'staff', 'priya', 'Jun 2026'),
-    p('marisol', 'Marisol Quintero', 'Senior Operations Associate', 'Operations', 'LOC-AS', 'staff', 'priya', 'Aug 2021'),
-    p('nadia', 'Nadia Farouk', 'Operations Associate', 'Operations', 'LOC-AS', 'staff', 'priya', 'Mar 2024'),
-    p('imani', 'Imani Clarke', 'Customer Service Manager', 'Customer Service', 'LOC-AS', 'dept', 'curtis', 'May 2020'),
-    p('devon', 'Devon Pryce', 'Customer Service Advisor', 'Customer Service', 'LOC-AS', 'staff', 'imani', 'Jan 2026'),
-    p('yolanda', 'Yolanda Briggs', 'Customer Service Advisor', 'Customer Service', 'LOC-AS', 'staff', 'imani', 'Sep 2022'),
-    p('oscar', 'Oscar Lindqvist', 'Facilities Manager', 'Facilities', 'LOC-AS', 'dept', 'curtis', 'Oct 2017'),
-    p('halle', 'Halle Ostrom', 'Facilities Technician', 'Facilities', 'LOC-AS', 'staff', 'oscar', 'Jul 2024'),
+    /* Cedar Hollow */
+    p('curtis', 'Curtis Nakamura', 'Executive Director', 'Operations', 'CM-CH', 'community', 'alexis', 'Sep 2019'),
+    p('priya', 'Priya Raghavan', 'Director of Nursing', 'Clinical', 'CM-CH', 'dept', 'curtis', 'Apr 2022'),
+    p('imani', 'Imani Clarke', 'Dining Services Director', 'Dining', 'CM-CH', 'dept', 'curtis', 'May 2020'),
+    p('oscar', 'Oscar Lindqvist', 'Maintenance Director', 'Maintenance', 'CM-CH', 'dept', 'curtis', 'Oct 2017'),
+    p('yolanda', 'Yolanda Briggs', 'Life Enrichment Director', 'Life Enrichment', 'CM-CH', 'dept', 'curtis', 'Sep 2022'),
+    p('dana', 'Dana Whitfield', 'Resident Assistant', 'Clinical', 'CM-CH', 'staff', 'priya', 'Feb 2025'),
+    p('lorna', 'Lorna Bekele', 'Resident Assistant', 'Clinical', 'CM-CH', 'staff', 'priya', 'Nov 2023'),
+    p('trevor', 'Trevor Ansley', 'Resident Assistant', 'Clinical', 'CM-CH', 'staff', 'priya', 'Jun 2026'),
+    p('marisol', 'Marisol Quintero', 'Medication Technician', 'Clinical', 'CM-CH', 'staff', 'priya', 'Aug 2021'),
+    p('nadia', 'Nadia Farouk', 'Medication Technician', 'Clinical', 'CM-CH', 'staff', 'priya', 'Mar 2024'),
+    p('devon', 'Devon Pryce', 'Dining Server', 'Dining', 'CM-CH', 'staff', 'imani', 'Jan 2026'),
+    p('halle', 'Halle Ostrom', 'Housekeeper', 'Housekeeping', 'CM-CH', 'staff', 'oscar', 'Jul 2024'),
 
-    /* Brackenfield */
-    p('ruben', 'Ruben Castellanos', 'Location Director', 'Operations', 'LOC-BR', 'location', 'alexis', 'Feb 2018'),
-    p('simone', 'Simone Adeyemi', 'Operations Manager', 'Operations', 'LOC-BR', 'dept', 'ruben', 'Sep 2023'),
-    p('kai', 'Kai Thornbury', 'Operations Associate', 'Operations', 'LOC-BR', 'staff', 'simone', 'Apr 2024'),
-    p('esther', 'Esther Vaneck', 'Operations Associate', 'Operations', 'LOC-BR', 'staff', 'simone', 'Dec 2022'),
-    p('malik', 'Malik Osei', 'Logistics Manager', 'Logistics', 'LOC-BR', 'dept', 'ruben', 'Mar 2021'),
+    /* Maple Court */
+    p('ruben', 'Ruben Castellanos', 'Executive Director', 'Operations', 'CM-MC', 'community', 'alexis', 'Feb 2018'),
+    p('simone', 'Simone Adeyemi', 'Director of Nursing', 'Clinical', 'CM-MC', 'dept', 'ruben', 'Sep 2023'),
+    p('kai', 'Kai Thornbury', 'Resident Assistant', 'Clinical', 'CM-MC', 'staff', 'simone', 'Apr 2024'),
+    p('esther', 'Esther Vaneck', 'Resident Assistant', 'Clinical', 'CM-MC', 'staff', 'simone', 'Dec 2022'),
 
-    /* Calderton */
-    p('bernadette', 'Bernadette Kohl', 'Location Director', 'Operations', 'LOC-CA', 'location', 'alexis', 'Nov 2020'),
-    p('ivan', 'Ivan Petrosyan', 'Customer Service Manager', 'Customer Service', 'LOC-CA', 'dept', 'bernadette', 'Jan 2024'),
-    p('camille', 'Camille Doucet', 'Customer Service Advisor', 'Customer Service', 'LOC-CA', 'staff', 'ivan', 'Aug 2025'),
+    /* Lakeview Manor */
+    p('bernadette', 'Bernadette Kohl', 'Executive Director', 'Operations', 'CM-LV', 'community', 'alexis', 'Nov 2020'),
+    p('ivan', 'Ivan Petrosyan', 'Memory Care Director', 'Memory Care', 'CM-LV', 'dept', 'bernadette', 'Jan 2024'),
+    p('camille', 'Camille Doucet', 'Resident Assistant', 'Memory Care', 'CM-LV', 'staff', 'ivan', 'Aug 2025'),
 
-    /* Southern */
-    p('harriet', 'Harriet Odum', 'Location Director', 'Operations', 'LOC-DU', 'location', 'dominic', 'Jun 2016'),
-    p('jonah', 'Jonah Reyes-Pike', 'Location Director', 'Operations', 'LOC-EA', 'location', 'dominic', 'Feb 2022'),
-    p('wren', 'Wren Abbasi', 'Operations Manager', 'Operations', 'LOC-DU', 'dept', 'harriet', 'Jul 2023'),
-    p('teodor', 'Teodor Balan', 'Operations Associate', 'Operations', 'LOC-DU', 'staff', 'wren', 'Mar 2023'),
-    p('junie', 'Junie Mbeki', 'Technical Support Analyst', 'Technical Support', 'LOC-EA', 'staff', 'jonah', 'Oct 2024')
+    /* Mid-Atlantic */
+    p('harriet', 'Harriet Odum', 'Executive Director', 'Operations', 'CM-SB', 'community', 'dominic', 'Jun 2016'),
+    p('jonah', 'Jonah Reyes-Pike', 'Executive Director', 'Operations', 'CM-WC', 'community', 'dominic', 'Feb 2022'),
+    p('wren', 'Wren Abbasi', 'Director of Nursing', 'Clinical', 'CM-SB', 'dept', 'harriet', 'Jul 2023'),
+    p('teodor', 'Teodor Balan', 'Resident Assistant', 'Clinical', 'CM-SB', 'staff', 'wren', 'Mar 2023'),
+    p('junie', 'Junie Mbeki', 'Business Office Manager', 'Business Office', 'CM-WC', 'dept', 'jonah', 'Oct 2024')
   ];
-  D.byId = function (id) { for (var i = 0; i < D.PEOPLE.length; i++) if (D.PEOPLE[i].id === id) return D.PEOPLE[i]; return { id: id, name: id, ini: '?', title: '', dept: '', loc: null }; };
-  D.loc = function (id) { for (var i = 0; i < D.LOCATIONS.length; i++) if (D.LOCATIONS[i].id === id) return D.LOCATIONS[i]; return { id: id, name: 'All locations', div: null }; };
-  D.locName = function (id) { return id ? D.loc(id).name : D.ORG; };
-  D.div = function (id) { for (var i = 0; i < D.DIVISIONS.length; i++) if (D.DIVISIONS[i].id === id) return D.DIVISIONS[i]; return { id: id, name: 'All divisions' }; };
+  D.byId = function (id) { for (var i = 0; i < D.PEOPLE.length; i++) if (D.PEOPLE[i].id === id) return D.PEOPLE[i]; return { id: id, name: id, ini: '?', title: '', dept: '', site: null, level: 'staff' }; };
+  D.site = function (id) { for (var i = 0; i < D.SITES.length; i++) if (D.SITES[i].id === id) return D.SITES[i]; return { id: id, name: D.CONFIG.org, region: null, type: '' }; };
+  D.siteName = function (id) { return id ? D.site(id).name : D.CONFIG.org; };
+  D.region = function (id) { for (var i = 0; i < D.REGIONS.length; i++) if (D.REGIONS[i].id === id) return D.REGIONS[i]; return { id: id, name: 'All regions' }; };
   D.reports = function (id) { return D.PEOPLE.filter(function (x) { return x.mgr === id; }); };
-  /* every person under someone, at any depth */
   D.branch = function (id) {
     var out = [], q = D.reports(id);
     while (q.length) { var x = q.shift(); out.push(x); q = q.concat(D.reports(x.id)); }
@@ -91,640 +96,305 @@
   };
   D.path = function (id) {
     var out = [], cur = D.byId(id);
-    while (cur && cur.id) { out.unshift(cur); cur = cur.mgr ? D.byId(cur.mgr) : null; }
+    while (cur && cur.id && cur.name !== cur.id) { out.unshift(cur); cur = cur.mgr ? D.byId(cur.mgr) : null; }
     return out;
   };
+  /* who counts as regional and up, which is what unlocks the site visit form */
+  D.LEVEL_ORDER = ['staff', 'dept', 'community', 'regional', 'corporate'];
+  D.atLeast = function (level, min) { return D.LEVEL_ORDER.indexOf(level) >= D.LEVEL_ORDER.indexOf(min); };
 
-  /* ---------------- roles: three, as the client uses them ---------------- */
-  D.ROLES = [
-    { key: 'employee', person: 'dana', label: 'Employee', sub: 'Subject of the record',
-      note: 'Sees only their own file: coaching they received, what they agreed to, and anything waiting to be acknowledged.' },
-    { key: 'manager', person: 'priya', label: 'Manager', sub: 'Runs the coaching',
-      note: 'Runs the coaching, owns the completion number, and starts a performance case. Scope follows the reporting line and can be changed to any branch at or below their own.' },
-    { key: 'hr', person: 'grant', label: 'HR', sub: 'Approver, configuration and the file',
-      note: 'Reviews every case, configures form types and rules, and owns the employee file export. Sees the whole organisation.' }
+  /* ---------------- personas for the View as switcher ----------------
+     Three roles. Several manager examples, because what a manager can reach
+     depends on where they sit, not on a separate permission list. */
+  D.PERSONAS = [
+    { key: 'employee', role: 'employee', person: 'dana', note: 'Sees only their own file, acknowledges what was documented, works their to-do list.' },
+    { key: 'dept', role: 'manager', person: 'priya', note: 'Documents coaching for the clinical team, runs evaluations, starts a PIP.' },
+    { key: 'ed', role: 'manager', person: 'curtis', note: 'Same as a department head, plus everything in the community. Receives site visit action items.' },
+    { key: 'regional', role: 'manager', person: 'alexis', note: 'Everything in the region, plus the site visit form.' },
+    { key: 'hr', role: 'hr', person: 'grant', note: 'Reviews and approves PIPs, sees every file, runs the termination export, configures the product.' }
   ];
 
-  /* ---------------- performance measures (E2), industry neutral ---------------- */
-  D.MEASURES = [
-    { id: 'msr.quality', name: 'Quality score', unit: '%', dir: 'up', target: 95, fmt: function (v) { return v.toFixed(1) + '%'; }, domain: 'Work quality' },
-    { id: 'msr.output', name: 'Output per shift', unit: 'units', dir: 'up', target: 42, fmt: function (v) { return v.toFixed(1); }, domain: 'Productivity' },
-    { id: 'msr.csat', name: 'Customer satisfaction', unit: '/5', dir: 'up', target: 4.4, fmt: function (v) { return v.toFixed(2) + ' / 5'; }, domain: 'Experience' },
-    { id: 'msr.adherence', name: 'Schedule adherence', unit: '%', dir: 'up', target: 95, fmt: function (v) { return v.toFixed(1) + '%'; }, domain: 'Workforce' },
-    { id: 'msr.absence', name: 'Unplanned absence', unit: '%', dir: 'down', target: 4, fmt: function (v) { return v.toFixed(1) + '%'; }, domain: 'Workforce' },
-    { id: 'msr.safety', name: 'Safety incidents per 100 staff', unit: 'rate', dir: 'down', target: 2.5, fmt: function (v) { return v.toFixed(1); }, domain: 'Safety' },
-    { id: 'msr.retention', name: '90 day new starter retention', unit: '%', dir: 'up', target: 80, fmt: function (v) { return v.toFixed(0) + '%'; }, domain: 'Workforce' },
-    { id: 'msr.training', name: 'Training completion', unit: '%', dir: 'up', target: 95, fmt: function (v) { return v.toFixed(0) + '%'; }, domain: 'Capability' }
+  /* ---------------- coaching types (the dropdown) ---------------- */
+  D.COACHING_TYPES = [
+    { id: 'CT-REC', name: 'Recognition', ic: 'award', desc: 'Positive documentation. Says what they did and why it mattered.', tone: 'good' },
+    { id: 'CT-DISC', name: 'Coaching discussion', ic: 'message-square-text', desc: 'A conversation about performance or behaviour.', tone: 'neutral' },
+    { id: 'CT-POL', name: 'Policy and procedure', ic: 'shield-check', desc: 'Resetting an expectation, or covering a policy.', tone: 'neutral' },
+    { id: 'CT-TEAM', name: 'Team meeting', ic: 'users', desc: 'One entry filed to everyone who attended. Attach the agenda.', tone: 'neutral', multi: true },
+    { id: 'CT-EVAL', name: 'Annual evaluation', ic: 'clipboard-check', desc: 'Opens the evaluation form.', tone: 'neutral', form: 'eval' },
+    { id: 'CT-VISIT', name: 'Site visit form', ic: 'building-2', desc: 'The community walk-through. Regional and up.', tone: 'neutral', form: 'visit', minLevel: 'regional' }
   ];
-  D.measure = function (id) { for (var i = 0; i < D.MEASURES.length; i++) if (D.MEASURES[i].id === id) return D.MEASURES[i]; return null; };
+  D.coachingType = function (id) { for (var i = 0; i < D.COACHING_TYPES.length; i++) if (D.COACHING_TYPES[i].id === id) return D.COACHING_TYPES[i]; return D.COACHING_TYPES[1]; };
 
-  /* [measure, location, value, priorMonth, last six months] */
-  D.METRICS = [
-    ['msr.quality', 'LOC-AS', 91.2, 92.4, [95.1, 94.4, 93.8, 93.2, 92.4, 91.2]],
-    ['msr.quality', 'LOC-BR', 96.4, 96.1, [95.2, 95.5, 95.8, 96.0, 96.1, 96.4]],
-    ['msr.quality', 'LOC-CA', 97.8, 97.6, [97.1, 97.2, 97.4, 97.5, 97.6, 97.8]],
-    ['msr.quality', 'LOC-DU', 89.6, 90.4, [92.8, 92.1, 91.5, 90.9, 90.4, 89.6]],
-    ['msr.quality', 'LOC-EA', 94.7, 94.3, [93.4, 93.6, 93.9, 94.1, 94.3, 94.7]],
-    ['msr.quality', 'LOC-FA', 98.1, 98.0, [97.6, 97.7, 97.8, 97.9, 98.0, 98.1]],
-    ['msr.output', 'LOC-AS', 36.4, 38.1, [41.2, 40.4, 39.6, 38.9, 38.1, 36.4]],
-    ['msr.output', 'LOC-BR', 44.2, 43.6, [42.1, 42.5, 42.9, 43.2, 43.6, 44.2]],
-    ['msr.output', 'LOC-CA', 45.8, 45.4, [44.2, 44.6, 44.9, 45.1, 45.4, 45.8]],
-    ['msr.output', 'LOC-DU', 38.2, 39.0, [41.0, 40.6, 40.1, 39.6, 39.0, 38.2]],
-    ['msr.output', 'LOC-EA', 43.1, 42.7, [41.6, 41.9, 42.2, 42.4, 42.7, 43.1]],
-    ['msr.output', 'LOC-FA', 46.3, 46.1, [45.4, 45.6, 45.8, 45.9, 46.1, 46.3]],
-    ['msr.csat', 'LOC-AS', 4.21, 4.28, [4.40, 4.36, 4.33, 4.30, 4.28, 4.21]],
-    ['msr.csat', 'LOC-BR', 4.52, 4.49, [4.42, 4.44, 4.46, 4.47, 4.49, 4.52]],
-    ['msr.csat', 'LOC-CA', 4.61, 4.60, [4.55, 4.57, 4.58, 4.59, 4.60, 4.61]],
-    ['msr.csat', 'LOC-DU', 4.18, 4.22, [4.31, 4.29, 4.27, 4.25, 4.22, 4.18]],
-    ['msr.csat', 'LOC-EA', 4.44, 4.41, [4.34, 4.36, 4.38, 4.40, 4.41, 4.44]],
-    ['msr.csat', 'LOC-FA', 4.58, 4.56, [4.50, 4.52, 4.54, 4.55, 4.56, 4.58]],
-    ['msr.adherence', 'LOC-AS', 90.4, 91.8, [94.1, 93.4, 92.8, 92.2, 91.8, 90.4]],
-    ['msr.adherence', 'LOC-BR', 96.2, 95.9, [95.0, 95.2, 95.5, 95.7, 95.9, 96.2]],
-    ['msr.adherence', 'LOC-CA', 97.4, 97.2, [96.7, 96.8, 97.0, 97.1, 97.2, 97.4]],
-    ['msr.adherence', 'LOC-DU', 88.9, 89.7, [92.1, 91.4, 90.8, 90.2, 89.7, 88.9]],
-    ['msr.adherence', 'LOC-EA', 94.3, 93.9, [93.0, 93.2, 93.5, 93.7, 93.9, 94.3]],
-    ['msr.adherence', 'LOC-FA', 97.8, 97.7, [97.3, 97.4, 97.5, 97.6, 97.7, 97.8]],
-    ['msr.absence', 'LOC-AS', 8.6, 7.4, [4.2, 5.1, 6.0, 6.8, 7.4, 8.6]],
-    ['msr.absence', 'LOC-BR', 3.1, 3.6, [5.0, 4.6, 4.2, 3.9, 3.6, 3.1]],
-    ['msr.absence', 'LOC-CA', 2.2, 2.4, [3.0, 2.8, 2.7, 2.5, 2.4, 2.2]],
-    ['msr.absence', 'LOC-DU', 9.2, 8.1, [5.8, 6.6, 7.0, 7.6, 8.1, 9.2]],
-    ['msr.absence', 'LOC-EA', 4.4, 4.8, [5.9, 5.6, 5.3, 5.0, 4.8, 4.4]],
-    ['msr.absence', 'LOC-FA', 1.9, 2.0, [2.4, 2.3, 2.2, 2.1, 2.0, 1.9]],
-    ['msr.safety', 'LOC-AS', 3.4, 3.1, [2.2, 2.5, 2.7, 2.9, 3.1, 3.4]],
-    ['msr.safety', 'LOC-BR', 2.1, 2.2, [2.6, 2.5, 2.4, 2.3, 2.2, 2.1]],
-    ['msr.safety', 'LOC-CA', 1.4, 1.5, [1.8, 1.7, 1.7, 1.6, 1.5, 1.4]],
-    ['msr.safety', 'LOC-DU', 4.1, 3.8, [3.0, 3.2, 3.4, 3.6, 3.8, 4.1]],
-    ['msr.safety', 'LOC-EA', 2.3, 2.4, [2.7, 2.6, 2.6, 2.5, 2.4, 2.3]],
-    ['msr.safety', 'LOC-FA', 1.2, 1.3, [1.5, 1.4, 1.4, 1.3, 1.3, 1.2]],
-    ['msr.retention', 'LOC-AS', 64, 69, [78, 76, 74, 72, 69, 64]],
-    ['msr.retention', 'LOC-BR', 82, 81, [77, 78, 79, 80, 81, 82]],
-    ['msr.retention', 'LOC-CA', 88, 87, [84, 85, 86, 86, 87, 88]],
-    ['msr.retention', 'LOC-DU', 58, 61, [70, 68, 66, 64, 61, 58]],
-    ['msr.retention', 'LOC-EA', 79, 78, [74, 75, 76, 77, 78, 79]],
-    ['msr.retention', 'LOC-FA', 91, 90, [88, 88, 89, 89, 90, 91]],
-    ['msr.training', 'LOC-AS', 88, 91, [97, 95, 94, 93, 91, 88]],
-    ['msr.training', 'LOC-BR', 96, 95, [93, 94, 94, 95, 95, 96]],
-    ['msr.training', 'LOC-CA', 98, 98, [97, 97, 98, 98, 98, 98]],
-    ['msr.training', 'LOC-DU', 90, 91, [94, 93, 93, 92, 91, 90]],
-    ['msr.training', 'LOC-EA', 95, 95, [94, 94, 95, 95, 95, 95]],
-    ['msr.training', 'LOC-FA', 97, 97, [96, 96, 97, 97, 97, 97]]
+  /* ---------------- coaching records ---------------- */
+  function C(o) { return o; }
+  D.RECORDS = [
+    C({ id: 'CR-20918', type: 'CT-DISC', emp: 'dana', by: 'priya', on: 'Fri 12 Sep 2026', at: '09:14', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Uniform and name badge',
+      text: 'Third shift this month arriving without a name badge. Reset the expectation: badge on before clocking in, spares are at the front desk. Dana understood and had no barriers to raise.',
+      ack: 'Fri 12 Sep 2026 17:40', attachments: [] }),
+    C({ id: 'CR-20904', type: 'CT-DISC', emp: 'dana', by: 'priya', on: 'Tue 26 Aug 2026', at: '15:20', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Uniform and name badge',
+      text: 'Second conversation about arriving out of uniform. Reviewed the dress code and why residents and families rely on badges.',
+      ack: 'Tue 26 Aug 2026 18:02', attachments: [] }),
+    C({ id: 'CR-20877', type: 'CT-DISC', emp: 'dana', by: 'priya', on: 'Mon 10 Aug 2026', at: '08:35', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Uniform and name badge',
+      text: 'Arrived in the wrong uniform. First conversation. Sent home to change, returned within the hour.',
+      ack: 'Mon 10 Aug 2026 12:15', attachments: [] }),
+    C({ id: 'CR-20930', type: 'CT-REC', emp: 'lorna', by: 'priya', on: 'Mon 15 Sep 2026', at: '16:05', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Covered two open shifts',
+      text: 'Picked up two unfilled shifts at short notice and still finished every care task on time. Named by a family member in the September survey.',
+      ack: 'Mon 15 Sep 2026 19:30', attachments: [] }),
+    C({ id: 'CR-20926', type: 'CT-TEAM', emp: null, group: ['dana', 'lorna', 'trevor', 'marisol', 'nadia'], by: 'priya', on: 'Wed 10 Sep 2026', at: '07:00', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Clinical team meeting: call light response',
+      text: 'Covered the new call light standard, the escalation path, and the September survey comments. Agenda attached. Every attendee has this on their file.',
+      attachments: ['Clinical team meeting agenda, 10 Sep 2026.pdf'] }),
+    C({ id: 'CR-20912', type: 'CT-POL', emp: 'nadia', by: 'priya', on: 'Mon 8 Sep 2026', at: '13:45', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Medication room door',
+      text: 'Med room found unlocked during a walk-through. Reviewed the policy and the reason for it. Nadia agreed to check the door on every exit.',
+      ack: 'Mon 8 Sep 2026 15:10', attachments: [] }),
+    C({ id: 'CR-20899', type: 'CT-REC', emp: 'devon', by: 'imani', on: 'Thu 4 Sep 2026', at: '11:20', site: 'CM-CH', dept: 'Dining',
+      topic: 'Handled a difficult meal service',
+      text: 'Stayed calm through a short-staffed lunch and kept residents informed. Two families commented on it.',
+      ack: null, attachments: [] }),
+    C({ id: 'CR-20880', type: 'CT-DISC', emp: 'teodor', by: 'wren', on: 'Mon 14 Jul 2026', at: '09:45', site: 'CM-SB', dept: 'Clinical',
+      topic: 'Unplanned absence',
+      text: 'Third unplanned absence in sixty days. Reviewed the attendance policy and the effect on the floor.',
+      ack: 'Mon 14 Jul 2026 16:00', attachments: [] }),
+    C({ id: 'CR-20865', type: 'CT-VISIT', emp: 'curtis', by: 'alexis', on: 'Tue 4 Aug 2026', at: '09:05', site: 'CM-CH', dept: 'Operations',
+      topic: 'Community site visit, August',
+      text: 'Full walk-through completed. Score 81%. Twelve findings, six action items assigned. Debriefed with the Executive Director before leaving.',
+      visitId: 'SV-1164', ack: 'Tue 4 Aug 2026 17:30', attachments: [] })
   ];
-  D.metric = function (m, loc) {
-    for (var i = 0; i < D.METRICS.length; i++) if (D.METRICS[i][0] === m && D.METRICS[i][1] === loc) {
-      var x = D.METRICS[i]; return { m: m, loc: loc, v: x[2], prior: x[3], trend: x[4] };
-    }
-    return null;
+  D.record = function (id) { for (var i = 0; i < D.RECORDS.length; i++) if (D.RECORDS[i].id === id) return D.RECORDS[i]; return null; };
+  D.recordsFor = function (empId) {
+    return D.RECORDS.filter(function (r) { return r.emp === empId || (r.group && r.group.indexOf(empId) >= 0); });
   };
-  D.attain = function (m, v) { var s = D.measure(m); return s.dir === 'up' ? Math.round(v / s.target * 100) : Math.round(s.target / v * 100); };
-  D.onTarget = function (m, v) { var s = D.measure(m); return s.dir === 'up' ? v >= s.target : v <= s.target; };
-  D.EMP_MEASURES = {
-    dana: [['msr.quality', 86.4], ['msr.output', 33.2], ['msr.adherence', 88.1]],
-    lorna: [['msr.quality', 97.8], ['msr.output', 44.6], ['msr.adherence', 98.2]],
-    trevor: [['msr.quality', 88.2], ['msr.output', 31.4], ['msr.training', 62]],
-    marisol: [['msr.quality', 98.1], ['msr.output', 46.2], ['msr.adherence', 97.4]],
-    nadia: [['msr.quality', 92.6], ['msr.output', 38.8], ['msr.adherence', 93.0]],
-    devon: [['msr.csat', 4.05], ['msr.adherence', 90.2]],
-    yolanda: [['msr.csat', 4.62], ['msr.adherence', 96.8]],
-    halle: [['msr.safety', 1.0], ['msr.quality', 94.2]],
-    kai: [['msr.quality', 96.1], ['msr.output', 43.9]],
-    esther: [['msr.quality', 91.4], ['msr.adherence', 89.6]],
-    camille: [['msr.csat', 4.71], ['msr.adherence', 98.0]],
-    teodor: [['msr.quality', 87.9], ['msr.absence', 9.8]],
-    junie: [['msr.csat', 4.55], ['msr.quality', 95.2]]
-  };
-
-  /* ---------------- form catalogue (E4) ----------------
-     Three families, one shared skeleton. Adding a type is configuration. */
-  D.FORM_FAMILIES = [
-    { key: 'staff', name: 'Employee coaching', desc: 'Run on an individual by their direct manager.' },
-    { key: 'leader', name: 'Leader coaching', desc: 'Run on a manager by the leader above them.' },
-    { key: 'ops', name: 'Operational review', desc: 'Run on a location or a process rather than a person.' }
-  ];
-  D.FORM_TYPES = [
-    { id: 'FT-OBS', name: 'Performance observation', fam: 'staff', ic: 'binoculars', mins: 12, qs: 9, scored: true, level: 'Employee', desc: 'Watch a task end to end and score it against the standard.' },
-    { id: 'FT-HUD', name: 'Team huddle', fam: 'staff', ic: 'users', mins: 8, qs: 6, scored: false, level: 'Employee', desc: 'Group touch point at shift change. Records who attended and the topic covered.' },
-    { id: 'FT-REC', name: 'Recognition', fam: 'staff', ic: 'award', mins: 4, qs: 4, scored: false, level: 'Employee', desc: 'Positive documentation. Counts toward the touch point target and toward retention reporting.' },
-    { id: 'FT-CHK', name: 'Check in', fam: 'staff', ic: 'message-square-text', mins: 10, qs: 7, scored: false, level: 'Employee', desc: 'Measure driven conversation on one topic. Opened automatically by a rule.' },
-    { id: 'FT-SKV', name: 'Skill validation', fam: 'staff', ic: 'badge-check', mins: 20, qs: 14, scored: true, level: 'Employee', desc: 'Competency sign off against a checklist. Feeds the capability record.' },
-    { id: 'FT-GPL', name: 'Mid cycle goal plan', fam: 'staff', ic: 'target', mins: 18, qs: 10, scored: false, level: 'Employee', desc: 'Sets the goals the rest of the cycle is coached against.' },
-    { id: 'FT-L11', name: 'Leader one to one', fam: 'leader', ic: 'handshake', mins: 25, qs: 11, scored: false, level: 'Manager', desc: 'Standing conversation between a manager and the leader above them.' },
-    { id: 'FT-LDP', name: 'Leader development plan', fam: 'leader', ic: 'graduation-cap', mins: 30, qs: 12, scored: false, level: 'Manager', desc: 'Ninety day development plan for a manager.' },
-    { id: 'FT-MRC', name: 'Manager coaching review', fam: 'leader', ic: 'compass', mins: 22, qs: 13, scored: true, level: 'Manager', desc: 'Coaches the coach. Scores how the manager ran their own coaching.' },
-    { id: 'FT-LOC', name: 'Location review', fam: 'ops', ic: 'building-2', mins: 95, qs: 118, scored: true, level: 'Location', desc: 'The full eight section operational review. Long form, completed on site.' },
-    { id: 'FT-CMP', name: 'Compliance audit', fam: 'ops', ic: 'shield-check', mins: 25, qs: 22, scored: true, level: 'Location', desc: 'Records, controls and sign offs against policy.' },
-    { id: 'FT-SVC', name: 'Service observation', fam: 'ops', ic: 'headphones', mins: 30, qs: 19, scored: true, level: 'Department', desc: 'End to end customer interaction, from first contact to resolution.' },
-    { id: 'FT-SAF', name: 'Safety walk', fam: 'ops', ic: 'shield-alert', mins: 20, qs: 16, scored: true, level: 'Location', desc: 'Hazards, equipment, signage and protective equipment.' }
-  ];
-  D.formType = function (id) { for (var i = 0; i < D.FORM_TYPES.length; i++) if (D.FORM_TYPES[i].id === id) return D.FORM_TYPES[i]; return null; };
-
-  /* the one skeleton every form type shares */
-  D.FORM_SKELETON = [
-    { key: 'instructions', name: 'Instructions', ic: 'info', desc: 'Why this form exists and how to use it. Read only.' },
-    { key: 'snapshot', name: 'Performance snapshot', ic: 'chart-column', desc: 'Measures pulled live at the moment the form opens.' },
-    { key: 'observation', name: 'Observation', ic: 'clipboard-list', desc: 'The scored or written body of the form.' },
-    { key: 'actions', name: 'Action items', ic: 'list-checks', desc: 'What happens next, who owns it and by when.' },
-    { key: 'info', name: 'Form information', ic: 'file-text', desc: 'Duration, location, attestation and the hierarchy path.' },
-    { key: 'submit', name: 'Submit, cancel or close', ic: 'send', desc: 'Read the whole record back before it becomes immutable.' }
+  D.DELETED_RECORDS = [
+    { id: 'CR-20889', type: 'CT-DISC', emp: 'trevor', by: 'priya', on: 'Tue 2 Sep 2026', site: 'CM-CH', deletedBy: 'grant', deletedOn: 'Wed 3 Sep 2026', reason: 'Recorded against the wrong team member. Reissued as CR-20893.' }
   ];
 
-  D.QUESTIONS = {
-    'FT-OBS': [
-      { s: 'Preparation', qs: [
-        'Had everything needed to start the task without leaving the workstation.',
-        'Confirmed the request and the expected outcome before starting.',
-        'Followed the current version of the procedure, not a remembered one.'] },
-      { s: 'Execution', qs: [
-        'Completed each step in the required order.',
-        'Used the correct system and recorded the work as they went.',
-        'Asked for help at the point of doubt rather than after the error.'] },
-      { s: 'Close out', qs: [
-        'Checked their own work before marking it complete.',
-        'Recorded the outcome in the system before the end of the shift.',
-        'Handed off anything unresolved to the next shift.'] }
-    ],
-    'FT-SKV': [
-      { s: 'Preparation', qs: ['Gathered what was needed before starting.', 'Confirmed the task and the acceptance criteria.', 'Explained what they were about to do.', 'Set up safely and correctly.'] },
-      { s: 'Procedure', qs: ['Followed each step of the checklist in order.', 'Kept to the quality standard throughout.', 'Handled the exception case correctly.', 'Used the correct settings and tools.', 'Kept the customer or colleague informed.'] },
-      { s: 'Documentation', qs: ['Recorded the outcome in the system.', 'Reported the variance to the manager.', 'Completed the task within the expected time.'] },
-      { s: 'Sign off', qs: ['Able to perform this task unsupervised.', 'Validator observed the whole task, not a part of it.'] }
-    ],
-    'FT-MRC': [
-      { s: 'Preparation', qs: ['Reviewed the measures before the conversation.', 'Knew who on the team was behind on touch points.', 'Had prior action items to hand.'] },
-      { s: 'In the conversation', qs: ['Asked open questions rather than checking boxes.', 'Observed the work rather than only talking about it.', 'Gave a specific example rather than a general comment.', 'Named the standard being coached to.'] },
-      { s: 'Documentation', qs: ['Completed the form within twenty four hours.', 'Wrote action items that name an owner and a date.', 'Language is specific enough to be defensible.'] },
-      { s: 'Follow through', qs: ['Closed prior action items that were due.', 'Escalated the repeat trend rather than recoaching it a fourth time.', 'Recognised as well as corrected.'] }
-    ],
-    'FT-CMP': [
-      { s: 'Records', qs: ['Required records complete for the last thirty days.', 'Sign offs present and by the right person.', 'Exceptions logged with a reason.', 'No out of date documents in use.'] },
-      { s: 'Controls', qs: ['Access rights match the current role list.', 'Dual control applied where the policy requires it.', 'Discrepancies from the last thirty days closed out.'] },
-      { s: 'Training', qs: ['Mandatory training complete for everyone on shift.', 'New starters signed off before working unsupervised.', 'Refresher training in date.'] },
-      { s: 'Environment', qs: ['Work area clean and uncluttered.', 'Equipment in date and serviceable.', 'Emergency equipment sealed and accessible.'] }
-    ],
-    'FT-SVC': [
-      { s: 'Opening', qs: ['Greeted the customer and confirmed who they were.', 'Set expectations for how long it would take.', 'Checked the account or record before asking the customer to repeat it.'] },
-      { s: 'Handling', qs: ['Listened without interrupting.', 'Used plain language rather than internal jargon.', 'Offered the right option rather than the easiest one.', 'Kept the customer informed during any hold or wait.'] },
-      { s: 'Resolution', qs: ['Resolved at first contact where it was possible.', 'Explained clearly what happens next and when.', 'Confirmed the customer was satisfied before closing.'] },
-      { s: 'After the contact', qs: ['Recorded the contact accurately.', 'Raised the follow up where one was needed.', 'Flagged the process fault rather than working around it again.'] }
-    ],
-    'FT-SAF': [
-      { s: 'Hazards', qs: ['Walkways clear and unobstructed.', 'Spills and trip hazards dealt with at the point of use.', 'Signage current and visible.'] },
-      { s: 'Equipment', qs: ['Equipment inspected and in date.', 'Guards and cut outs in place and working.', 'Faulty equipment tagged and removed from use.'] },
-      { s: 'Protective equipment', qs: ['Correct equipment available at the point of need.', 'Staff observed using it.', 'Stock levels adequate for the next week.'] },
-      { s: 'Records', qs: ['Incident log current.', 'Near misses recorded, not just incidents.', 'Last inspection actions closed.'] }
-    ]
-  };
-  D.questionsFor = function (id) { return D.QUESTIONS[id] || D.QUESTIONS['FT-OBS']; };
-
-  /* the eight section long form (E5), generic */
-  D.REVIEW_SECTIONS = [
-    { key: 'readiness', name: 'Opening and readiness', ic: 'map-pin', qs: 12, done: 12,
-      items: ['Site opened on time and to standard.', 'Reception and entry clean and in repair.', 'Sign in and access process followed.', 'Public areas free of clutter.'] },
-    { key: 'process', name: 'Process and compliance', ic: 'clipboard-check', qs: 18, done: 18,
-      items: ['Current procedure version in use at every workstation.', 'Records complete for the last seven days.', 'Exceptions escalated within twenty four hours.', 'Sign offs by the right person.'] },
-    { key: 'customer', name: 'Customer experience', ic: 'heart-handshake', qs: 16, done: 16,
-      items: ['Spoke with at least three customers about their experience.', 'Wait times within the standard during the visit.', 'Staff presentable and identifiable.', 'Published service information matches what actually happens.'] },
-    { key: 'service', name: 'Service delivery', ic: 'headphones', qs: 14, done: 14,
-      items: ['Observed a full service cycle end to end.', 'Handover between shifts complete.', 'Staffing matches the assessed demand.', 'Backlog visible and being worked.'] },
-    { key: 'environment', name: 'Environment and safety', ic: 'shield-check', qs: 20, done: 11,
-      items: ['Walkways clear of obstruction.', 'Equipment inspected and in date.', 'Exits unobstructed and alarmed.', 'Protective equipment stocked at the point of need.'] },
-    { key: 'staffing', name: 'Staffing and scheduling', ic: 'users-round', qs: 15, done: 0,
-      items: ['Published rota matches the actual assignment.', 'Open shifts for the next fourteen days reviewed.', 'Overtime and agency use explained by the schedule, not by habit.', 'Break coverage planned.'] },
-    { key: 'records', name: 'Records and audit readiness', ic: 'folder-open', qs: 13, done: 0,
-      items: ['Audit file current.', 'Last audit findings closed with evidence.', 'Governance minutes filed for the last quarter.', 'Training attendance complete.'] },
-    { key: 'debrief', name: 'Leader debrief and summary', ic: 'notebook-text', qs: 10, done: 0,
-      items: ['Debriefed the Location Director before leaving.', 'Named the single biggest risk found.', 'Agreed the follow up date.', 'Recognised one thing done well.'] }
+  /* ---------------- PIP, following the client form ---------------- */
+  D.PIP_LEVELS = [
+    { key: 'first', name: 'First Counseling', letter: false },
+    { key: 'written', name: 'Written Counseling', letter: true },
+    { key: 'final', name: 'Final Written Counseling', letter: true },
+    { key: 'termination', name: 'Termination', letter: true }
   ];
-
-  /* ---------------- to do list (E3) ---------------- */
-  function T(id, emp, ft, topic, target, due, status, rule, msr, owner, loc, extra) {
-    var o = { id: id, emp: emp, ft: ft, topic: topic, target: target, due: due, status: status, rule: rule, msr: msr, owner: owner, loc: loc };
-    if (extra) for (var k in extra) o[k] = extra[k];
-    return o;
-  }
-  D.TASKS = [
-    T('TP-4471', 'dana', 'FT-CHK', 'Check in: quality score', 'Quality improvement', 'Thu 18 Sep', 'Overdue', 'RULE-07', 'msr.quality', 'priya', 'LOC-AS', { opened: 'Fri 11 Sep', last: '22 Jul', lastBy: 'priya', why: 'Quality score 86.4% across the last 9 shifts against a 95% standard.' }),
-    T('TP-4488', 'trevor', 'FT-SKV', 'Skill validation: exception handling', 'New starter sign off', 'Wed 17 Sep', 'Open', 'RULE-02', null, 'priya', 'LOC-AS', { opened: 'Wed 10 Sep', last: '-', lastBy: '-', why: 'New starter at day 90. Sign off required before working unsupervised.' }),
-    T('TP-4492', 'nadia', 'FT-CHK', 'Check in: output per shift', 'Productivity', 'Fri 19 Sep', 'Open', 'RULE-04', 'msr.output', 'priya', 'LOC-AS', { opened: 'Mon 14 Sep', last: '5 Aug', lastBy: 'priya', why: 'Output 38.8 against a 42 standard for two consecutive weeks.' }),
-    T('TP-4495', 'lorna', 'FT-REC', 'Recognition: sustained top quartile', 'Recognition', 'Fri 19 Sep', 'Open', 'RULE-11', 'msr.quality', 'priya', 'LOC-AS', { opened: 'Mon 14 Sep', last: '1 Aug', lastBy: 'priya', why: 'Top decile on quality for three consecutive months. Recognition is a rule, not a favour.' }),
-    T('TP-4501', 'devon', 'FT-OBS', 'Performance observation: customer contact', 'Customer experience', 'Mon 22 Sep', 'Open', 'RULE-09', 'msr.csat', 'imani', 'LOC-AS', { opened: 'Tue 15 Sep', last: '-', lastBy: '-', why: 'Two customer comments this month named handling pace.' }),
-    T('TP-4504', 'marisol', 'FT-GPL', 'Mid cycle goal plan', 'Goal plan', 'Tue 30 Sep', 'Open', 'RULE-01', null, 'priya', 'LOC-AS', { opened: 'Tue 1 Sep', last: '1 Jun', lastBy: 'priya', why: 'Every employee gets a mid cycle goal plan in the second month of the cycle.' }),
-    T('TP-4460', 'halle', 'FT-OBS', 'Performance observation: equipment check', 'Quality improvement', 'Mon 15 Sep', 'Completed', 'RULE-03', null, 'oscar', 'LOC-AS', { opened: 'Mon 8 Sep', done: 'Mon 15 Sep', formId: 'FM-20918', last: '8 Aug', lastBy: 'oscar' }),
-    T('TP-4455', 'dana', 'FT-OBS', 'Performance observation: morning run', 'Quality improvement', 'Fri 12 Sep', 'Completed', 'RULE-03', null, 'priya', 'LOC-AS', { opened: 'Fri 5 Sep', done: 'Fri 12 Sep', formId: 'FM-20904', last: '13 Aug', lastBy: 'priya' }),
-    T('TP-4509', 'yolanda', 'FT-HUD', 'Team huddle: customer service', 'Weekly huddle', 'Wed 17 Sep', 'Draft', 'RULE-06', null, 'imani', 'LOC-AS', { opened: 'Tue 15 Sep', draftPct: 60, last: '9 Sep', lastBy: 'imani' }),
-    T('TP-4512', 'esther', 'FT-CHK', 'Check in: schedule adherence', 'Workforce', 'Thu 18 Sep', 'Open', 'RULE-07', 'msr.adherence', 'simone', 'LOC-BR', { opened: 'Thu 11 Sep', last: '-', lastBy: '-', why: 'Adherence 89.6% against a 95% standard.' }),
-    T('TP-4515', 'teodor', 'FT-CHK', 'Check in: unplanned absence', 'Workforce', 'Thu 18 Sep', 'Overdue', 'RULE-07', 'msr.absence', 'wren', 'LOC-DU', { opened: 'Tue 2 Sep', last: '14 Jul', lastBy: 'wren', why: 'Unplanned absence 9.8% against a 4% standard.' }),
-    T('TP-4520', 'priya', 'FT-MRC', 'Manager coaching review', 'Coach the coach', 'Fri 19 Sep', 'Open', 'RULE-12', null, 'curtis', 'LOC-AS', { opened: 'Mon 14 Sep', last: '-', lastBy: '-', why: 'Ashford touch point completion is 68% against a 90% standard.' }),
-    T('TP-4524', 'imani', 'FT-L11', 'Leader one to one', 'Standing one to one', 'Mon 22 Sep', 'Open', 'RULE-13', null, 'curtis', 'LOC-AS', { opened: 'Mon 8 Sep', last: '11 Aug', lastBy: 'curtis' }),
-    T('TP-4527', 'junie', 'FT-REC', 'Recognition: customer compliment', 'Recognition', 'Wed 24 Sep', 'Open', 'RULE-11', 'msr.csat', 'jonah', 'LOC-EA', { opened: 'Tue 15 Sep', last: '-', lastBy: '-', why: 'Named twice in customer feedback this month.' })
+  D.OFFENSE_TYPES = ['Attendance Issues', 'Violation of Company Policy', 'Substandard Work', 'Safety Violation', 'Lack of Professionalism', 'Other'];
+  D.PIP_ACTIVE_MONTHS = 12;
+  D.PIPS = [
+    { id: 'PIP-412', emp: 'dana', by: 'priya', level: 'written', status: 'Pending approval', site: 'CM-CH',
+      offense: 'Violation of Company Policy', opened: 'Thu 17 Sep 2026', start: 'Mon 21 Sep 2026', end: 'Mon 21 Sep 2027',
+      reason: 'Due to ongoing concerns related to policy compliance, you are being placed on a Written Counseling Performance Improvement Plan. Three documented conversations about uniform and name badge have not produced sustained change.',
+      evidence: ['CR-20877', 'CR-20904', 'CR-20918'],
+      actions: [
+        { t: 'Arrive in full uniform with a name badge for every scheduled shift', due: 'Ongoing, reviewed weekly', done: false },
+        { t: 'Confirm uniform and badge with the charge nurse at the start of each shift for four weeks', due: 'Fri 16 Oct 2026', done: false }],
+      initial: { on: 'Mon 21 Sep 2026', note: null },
+      reviews: [{ on: 'Fri 16 Oct 2026', note: null }, { on: 'Fri 20 Nov 2026', note: null }],
+      resolution: null, next: 'curtis',
+      approvals: [
+        { who: 'priya', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Thu 17 Sep 2026 11:05' },
+        { who: 'curtis', role: 'One level above, Executive Director', state: 'Waiting', on: null },
+        { who: 'grant', role: 'HR review', state: 'Waiting', on: null }],
+      audit: [
+        { on: 'Thu 17 Sep 2026 10:48', who: 'priya', what: 'PIP opened at Written Counseling. Three coaching records attached automatically.' },
+        { on: 'Thu 17 Sep 2026 11:05', who: 'priya', what: 'Submitted for approval and review.' }] },
+    { id: 'PIP-408', emp: 'teodor', by: 'wren', level: 'first', status: 'Active', site: 'CM-SB',
+      offense: 'Attendance Issues', opened: 'Mon 21 Jul 2026', start: 'Mon 28 Jul 2026', end: 'Tue 28 Jul 2027',
+      reason: 'Due to ongoing concerns related to attendance, you are being placed on a First Counseling Performance Improvement Plan.',
+      evidence: ['CR-20880'],
+      actions: [
+        { t: 'No unplanned absence for the next ninety days', due: 'Mon 26 Oct 2026', done: false },
+        { t: 'Call the charge nurse at least two hours before shift if unable to attend', due: 'Ongoing', done: true }],
+      initial: { on: 'Mon 28 Jul 2026', note: 'Reviewed the plan with Teodor. He raised a transport issue; schedule adjusted to the later start.' },
+      reviews: [{ on: 'Fri 29 Aug 2026', note: 'No occurrences since the plan started. Transport arrangement holding.' },
+                { on: 'Fri 26 Sep 2026', note: null }],
+      resolution: null,
+      approvals: [
+        { who: 'wren', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Mon 21 Jul 2026 09:30' },
+        { who: 'harriet', role: 'One level above, Executive Director', state: 'Approved', on: 'Mon 21 Jul 2026 14:10' },
+        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 22 Jul 2026 10:02' }],
+      audit: [{ on: 'Tue 22 Jul 2026 10:02', who: 'grant', what: 'Approved by HR.' },
+              { on: 'Mon 28 Jul 2026 09:00', who: 'wren', what: 'Activated after the meeting with the employee.' },
+              { on: 'Fri 29 Aug 2026 16:20', who: 'wren', what: 'First review recorded.' }] },
+    { id: 'PIP-395', emp: 'esther', by: 'simone', level: 'first', status: 'Closed', site: 'CM-MC',
+      offense: 'Substandard Work', opened: 'Mon 12 May 2026', start: 'Mon 19 May 2026', end: 'Tue 19 May 2027',
+      reason: 'Documentation not completed before end of shift on repeated occasions.',
+      evidence: [], outcome: 'Successfully completed',
+      actions: [{ t: 'Complete all charting before leaving the floor', due: 'Fri 18 Jul 2026', done: true }],
+      initial: { on: 'Mon 19 May 2026', note: 'Plan discussed and understood.' },
+      reviews: [{ on: 'Fri 20 Jun 2026', note: 'Charting complete on every audited shift.' }],
+      resolution: { on: 'Fri 18 Jul 2026', next: 'Successfully completed. No further action.', note: 'Sustained for eight weeks.' },
+      approvals: [{ who: 'simone', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Mon 12 May 2026 10:00' },
+                  { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 13 May 2026 09:15' }],
+      audit: [{ on: 'Fri 18 Jul 2026 16:00', who: 'simone', what: 'Closed as successfully completed.' }] },
+    { id: 'PIP-380', emp: 'camille', by: 'ivan', level: 'final', status: 'Closed', site: 'CM-LV',
+      offense: 'Attendance Issues', opened: 'Mon 3 Feb 2026', start: 'Mon 10 Feb 2026', end: 'Tue 10 Feb 2027',
+      reason: 'Final Written Counseling following two prior counselings on attendance.',
+      evidence: [], outcome: 'Advanced to termination',
+      actions: [{ t: 'No unplanned absence for ninety days', due: 'Mon 11 May 2026', done: false }],
+      initial: { on: 'Mon 10 Feb 2026', note: 'Plan discussed.' },
+      reviews: [{ on: 'Fri 13 Mar 2026', note: 'One further occurrence on 6 March.' }],
+      resolution: { on: 'Mon 11 May 2026', next: 'Advanced to termination.', note: 'Standard not sustained.' },
+      termination: { supervisor: 'ivan', finalDay: 'Mon 11 May 2026', reason: 'Attendance, following a Final Written Counseling.',
+        exitBy: 'grant', belongings: 'Badge and keys returned', codes: 'Door codes changed 11 May', access: 'System and email access closed 11 May' },
+      approvals: [{ who: 'ivan', role: 'Initiator, Memory Care Director', state: 'Submitted', on: 'Mon 3 Feb 2026 09:00' },
+                  { who: 'grant', role: 'HR review', state: 'Approved', on: 'Wed 5 Feb 2026 11:00' }],
+      audit: [{ on: 'Mon 11 May 2026 15:00', who: 'grant', what: 'Advanced to termination. File compiled for export.' }] }
   ];
+  D.pip = function (id) { for (var i = 0; i < D.PIPS.length; i++) if (D.PIPS[i].id === id) return D.PIPS[i]; return null; };
+  D.pipLevel = function (k) { for (var i = 0; i < D.PIP_LEVELS.length; i++) if (D.PIP_LEVELS[i].key === k) return D.PIP_LEVELS[i]; return D.PIP_LEVELS[0]; };
 
-  D.RULES = [
-    { id: 'RULE-01', name: 'Mid cycle goal plan for everyone', msr: null, when: 'Day 45 of a performance cycle', makes: 'FT-GPL', due: '15 days', rec: 'Every cycle', on: true, fired: 41 },
-    { id: 'RULE-02', name: 'New starter skill validation at 90 days', msr: null, when: 'Employee reaches day 83 of employment', makes: 'FT-SKV', due: '7 days', rec: 'Once per hire', on: true, fired: 12 },
-    { id: 'RULE-03', name: 'Monthly observation per employee', msr: null, when: 'No observation in the last 30 days', makes: 'FT-OBS', due: '7 days', rec: 'Monthly', on: true, fired: 186 },
-    { id: 'RULE-04', name: 'Output below standard', msr: 'msr.output', when: 'Below target for 2 consecutive weeks', makes: 'FT-CHK', due: '5 days', rec: 'Once per breach', on: true, fired: 9 },
-    { id: 'RULE-05', name: 'Training completion below standard', msr: 'msr.training', when: 'Below 95% in a month', makes: 'FT-CHK', due: '7 days', rec: 'Monthly while breached', on: true, fired: 14 },
-    { id: 'RULE-06', name: 'Weekly team huddle per department', msr: null, when: 'Start of each week', makes: 'FT-HUD', due: '5 days', rec: 'Weekly', on: true, fired: 312 },
-    { id: 'RULE-07', name: 'Any measure below standard for 5 periods', msr: 'msr.quality', when: 'Below target across 5 consecutive periods', makes: 'FT-CHK', due: '7 days', rec: 'Once per breach', on: true, fired: 23 },
-    { id: 'RULE-09', name: 'Customer comment threshold', msr: 'msr.csat', when: 'Two or more comments on one theme in a month', makes: 'FT-OBS', due: '7 days', rec: 'Monthly', on: true, fired: 6 },
-    { id: 'RULE-11', name: 'Recognition for sustained top decile', msr: 'msr.quality', when: 'Top decile for 3 consecutive months', makes: 'FT-REC', due: '5 days', rec: 'Quarterly', on: true, fired: 18 },
-    { id: 'RULE-12', name: 'Coach the coach on low completion', msr: null, when: 'Manager touch point completion below 75%', makes: 'FT-MRC', due: '5 days', rec: 'Monthly while breached', on: true, fired: 7 },
-    { id: 'RULE-13', name: 'Monthly leader one to one', msr: null, when: 'Start of each month', makes: 'FT-L11', due: '14 days', rec: 'Monthly', on: true, fired: 96 },
-    { id: 'RULE-14', name: 'Safety incident opens a team huddle', msr: 'msr.safety', when: 'Above 3.0 per 100 staff', makes: 'FT-HUD', due: '2 days', rec: 'Once per breach', on: false, fired: 0 }
+  /* ---------------- annual evaluation, following the client form ---------------- */
+  D.EVAL_SCALE = [
+    { n: 1, name: 'Below expectations', sub: 'Needs improvement' },
+    { n: 2, name: 'Approaching expectations', sub: 'Room for improvement' },
+    { n: 3, name: 'Meeting expectations', sub: 'Proficient' },
+    { n: 4, name: 'Exceeds expectations', sub: '' }
   ];
+  D.EVAL_SECTIONS = [
+    { key: 's1', name: 'Understanding of job expectations', qs: [
+      'Does the employee understand what the expectations of this role are and what is expected of them to be successful?',
+      'Does the employee understand and fulfil the job responsibilities in a timely manner, meeting all deadlines?',
+      'Does the employee appropriately take initiative, prioritise responsibilities and apply urgency when necessary?',
+      'Does the employee abide by company policies and procedures?',
+      'Does the employee accept direction and execute each directive timely and effectively?',
+      'Are training and compliance requirements being met?'] },
+    { key: 's2', name: 'Communication', qs: [
+      'Does the employee communicate professionally and effectively with all employees, residents, families and third parties?',
+      'Is the employee professional and respectful in all communications, written and verbal?',
+      'Does the employee communicate all pertinent details to the appropriate person within a reasonable timeframe?',
+      'Does the employee communicate effectively interdepartmentally?',
+      'If applicable, do direct reports feel supported and comfortable raising concerns?'] },
+    { key: 's3', name: 'Key performance indicators', kpi: true, qs: [] },
+    { key: 's4', name: 'Core company competency', qs: [
+      'Does the employee exercise actions that align with the mission and vision?',
+      'Does the employee focus on the development of direct reports and collaborate effectively?',
+      'Does the employee lead by example, representing the company positively and professionally?'] },
+    { key: 's5', name: 'Developmental opportunities', dev: true, qs: [] }
+  ];
+  D.EVAL_MAX = { year1: 68, year2: 72 };
+  D.EVAL_KPI_COUNT = { year1: 3, year2: 4 };
+  D.EVALUATIONS = [
+    { id: 'EV-2026-041', emp: 'lorna', by: 'priya', site: 'CM-CH', cycle: 'FY 2026', status: 'Complete', reviewDate: 'Fri 5 Sep 2026',
+      years: 2, scores: { s1: [4, 3, 4, 4, 3, 4], s2: [4, 4, 3, 3, 3], s4: [4, 3, 4] },
+      kpis: [{ t: 'Call light response within standard', v: 4 }, { t: 'Charting complete before end of shift', v: 4 }, { t: 'Mandatory training current', v: 3 }, { t: 'Attendance', v: 4 }],
+      dev: [{ t: 'Lead the clinical team huddle once a month', how: 'Observed by the Director of Nursing' },
+            { t: 'Complete the medication technician pathway', how: 'Certificate on file by March' },
+            { t: 'Mentor one new hire through their first thirty days', how: 'New hire retained at day 30' }],
+      priorDev: 'Last year: complete dementia training, achieved.', selfEval: true,
+      comments: 'Happy with the plan. Would like more memory care hours.', total: 65, ack: 'Fri 5 Sep 2026' },
+    { id: 'EV-2026-052', emp: 'dana', by: 'priya', site: 'CM-CH', cycle: 'FY 2026', status: 'In progress', reviewDate: 'Fri 25 Sep 2026',
+      years: 1, scores: { s1: [3, 3, 2, 1, 3, 3], s2: [3, 3, 2, null, null], s4: [3, null, 2] },
+      kpis: [{ t: 'Call light response within standard', v: 2 }, { t: 'Charting complete before end of shift', v: 2 }, { t: 'Uniform and badge compliance', v: 1 }],
+      dev: [], priorDev: '', selfEval: false, comments: '', total: null, ack: null },
+    { id: 'EV-2026-033', emp: 'priya', by: 'curtis', site: 'CM-CH', cycle: 'FY 2026', status: 'Complete', reviewDate: 'Mon 18 Aug 2026',
+      years: 2, scores: { s1: [4, 3, 3, 4, 4, 3], s2: [4, 4, 4, 3, 4], s4: [4, 3, 4] },
+      kpis: [{ t: 'Clinical survey readiness', v: 3 }, { t: 'Agency hours against budget', v: 2 }, { t: 'Team retention at ninety days', v: 3 }, { t: 'Documentation completion', v: 4 }],
+      dev: [{ t: 'Reduce agency use below 8%', how: 'Monthly review with the Executive Director' },
+            { t: 'Build a charge nurse bench of two', how: 'Two named and in the pathway by January' },
+            { t: 'Document every clinical team meeting', how: 'Records visible in skyPerformance' }],
+      priorDev: 'Last year: complete the leadership pathway, achieved.', selfEval: true,
+      comments: '', total: 63, ack: 'Mon 18 Aug 2026' }
+  ];
+  D.evaluation = function (id) { for (var i = 0; i < D.EVALUATIONS.length; i++) if (D.EVALUATIONS[i].id === id) return D.EVALUATIONS[i]; return null; };
 
-  /* ---------------- documented forms (E8) ---------------- */
-  D.FORMS = [
-    { id: 'FM-20904', ft: 'FT-OBS', emp: 'dana', by: 'priya', date: 'Fri 12 Sep 2026', time: '09:14', mins: 14, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Needs improvement', noCount: 2, geo: 'Matched, 18 m from the registered address', task: 'TP-4455',
-      summary: 'Two standards missed on the morning run: the procedure version in use was out of date, and the work was recorded at the end of the shift rather than as it went. Accuracy of the work itself was good.',
-      scores: [2, 2, 1, 2, 2, 2, 2, 1, 2], attested: true, ack: 'Fri 12 Sep 2026' },
-    { id: 'FM-20877', ft: 'FT-CHK', emp: 'dana', by: 'priya', date: 'Thu 28 Aug 2026', time: '15:40', mins: 11, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Documented', geo: 'Matched, 22 m from the registered address', task: 'TP-4433',
-      summary: 'Quality score at 86%. Agreed to record work as it is completed rather than batching it at the end of the week.', attested: true, ack: 'Thu 28 Aug 2026' },
-    { id: 'FM-20918', ft: 'FT-OBS', emp: 'halle', by: 'oscar', date: 'Mon 15 Sep 2026', time: '11:02', mins: 16, loc: 'LOC-AS', dept: 'Facilities',
-      outcome: 'Meets standard', noCount: 0, geo: 'Matched, 9 m from the registered address', task: 'TP-4460',
-      summary: 'Equipment check ran to standard including the tagging steps. Nothing to correct.',
-      scores: [2, 2, 2, 2, 2, 2, 2, 2, 2], attested: true, ack: 'Mon 15 Sep 2026' },
-    { id: 'FM-20862', ft: 'FT-OBS', emp: 'dana', by: 'priya', date: 'Wed 13 Aug 2026', time: '08:55', mins: 13, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Needs improvement', noCount: 3, geo: 'Matched, 14 m from the registered address',
-      summary: 'Recording and self check both missed. Third observation in a row with the same recording gap.',
-      scores: [2, 1, 2, 2, 2, 1, 1, 2, 2], attested: true, ack: 'Wed 13 Aug 2026' },
-    { id: 'FM-20840', ft: 'FT-REC', emp: 'lorna', by: 'priya', date: 'Fri 1 Aug 2026', time: '16:20', mins: 5, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Recognition', geo: 'Matched, 11 m from the registered address',
-      summary: 'Covered two unfilled shifts and still finished every task on time. Named by a customer in the July feedback.', attested: true, ack: 'Fri 1 Aug 2026' },
-    { id: 'FM-20831', ft: 'FT-CHK', emp: 'dana', by: 'priya', date: 'Tue 22 Jul 2026', time: '14:05', mins: 9, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Documented', geo: 'Matched, 20 m from the registered address',
-      summary: 'First conversation about recording work as it is done. Agreed a reminder at the two hour mark of each shift.', attested: true, ack: 'Tue 22 Jul 2026' },
-    { id: 'FM-20795', ft: 'FT-SKV', emp: 'kai', by: 'simone', date: 'Thu 10 Jul 2026', time: '10:30', mins: 24, loc: 'LOC-BR', dept: 'Operations',
-      outcome: 'Meets standard', noCount: 0, geo: 'Matched, 6 m from the registered address',
-      summary: 'Exception handling validated. Cleared to work unsupervised.', attested: true, ack: 'Thu 10 Jul 2026' },
-    { id: 'FM-20930', ft: 'FT-MRC', emp: 'simone', by: 'ruben', date: 'Mon 8 Sep 2026', time: '13:15', mins: 28, loc: 'LOC-BR', dept: 'Operations',
-      outcome: 'Meets standard', noCount: 1, geo: 'Matched, 12 m from the registered address',
-      summary: 'Coaching is consistent and documented on the day. One gap: prior action items were not reviewed before the conversation.', attested: true, ack: 'Mon 8 Sep 2026' },
-    { id: 'FM-20812', ft: 'FT-CHK', emp: 'teodor', by: 'wren', date: 'Mon 14 Jul 2026', time: '09:45', mins: 10, loc: 'LOC-DU', dept: 'Operations',
-      outcome: 'Documented', geo: 'Not matched, 2.4 km from the registered address', geoFlag: true,
-      summary: 'Conversation about unplanned absence. Recorded off site, which the record shows.', attested: true, ack: 'Mon 14 Jul 2026' },
-    { id: 'FM-20871', ft: 'FT-CHK', emp: 'nadia', by: 'priya', date: 'Tue 18 Aug 2026', time: '14:20', mins: 12, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Documented', geo: 'Matched, 15 m from the registered address',
-      summary: 'Second conversation about output per shift. Tool setup between batches is costing roughly four units a shift.', attested: true, ack: 'Tue 18 Aug 2026' },
-    { id: 'FM-20699', ft: 'FT-OBS', emp: 'dana', by: 'priya', date: 'Mon 16 Jun 2026', time: '08:40', mins: 15, loc: 'LOC-AS', dept: 'Operations',
-      outcome: 'Meets standard', noCount: 1, geo: 'Matched, 16 m from the registered address',
-      summary: 'Strong customer interaction. Work recorded before the end of shift.', scores: [2, 2, 2, 2, 2, 2, 2, 1, 2], attested: true, ack: 'Mon 16 Jun 2026' }
+  /* ---------------- site visits ---------------- */
+  D.VISIT_SCALE = [
+    { n: 2, label: 'Meets or exceeds standards' },
+    { n: 1, label: 'Improved, not yet meeting standards' },
+    { n: 0, label: 'No improvement, needs immediate attention' }
   ];
-  D.form = function (id) { for (var i = 0; i < D.FORMS.length; i++) if (D.FORMS[i].id === id) return D.FORMS[i]; return null; };
-  D.DELETED_FORMS = [
-    { id: 'FM-20889', ft: 'FT-OBS', emp: 'trevor', by: 'priya', date: 'Tue 2 Sep 2026', loc: 'LOC-AS', deletedBy: 'grant', deletedOn: 'Wed 3 Sep 2026', reason: 'Recorded against the wrong employee. Reissued as FM-20893.' },
-    { id: 'FM-20701', ft: 'FT-CHK', emp: 'camille', by: 'ivan', date: 'Mon 16 Jun 2026', loc: 'LOC-CA', deletedBy: 'grant', deletedOn: 'Mon 16 Jun 2026', reason: 'Duplicate submission, same conversation captured twice.' }
+  D.VISITS = [
+    { id: 'SV-1182', site: 'CM-CH', by: 'alexis', ed: 'curtis', date: 'Fri 18 Sep 2026', reviewMonth: 'September', status: 'In progress',
+      answered: 57, total: 172, score: null, priorDate: 'Tue 4 Aug 2026', photos: 3, findings: 4, started: '09:05' },
+    { id: 'SV-1176', site: 'CM-MC', by: 'alexis', ed: 'ruben', date: 'Thu 4 Sep 2026', reviewMonth: 'September', status: 'Complete',
+      answered: 172, total: 172, score: 92, priorDate: 'Wed 6 Aug 2026', photos: 11, findings: 6 },
+    { id: 'SV-1164', site: 'CM-CH', by: 'alexis', ed: 'curtis', date: 'Tue 4 Aug 2026', reviewMonth: 'August', status: 'Complete',
+      answered: 172, total: 172, score: 81, priorDate: 'Mon 7 Jul 2026', photos: 14, findings: 12 },
+    { id: 'SV-1158', site: 'CM-SB', by: 'dominic', ed: 'harriet', date: 'Tue 22 Jul 2026', reviewMonth: 'July', status: 'Complete',
+      answered: 172, total: 172, score: 78, priorDate: 'Thu 19 Jun 2026', photos: 9, findings: 15 },
+    { id: 'SV-1190', site: 'CM-LV', by: 'alexis', ed: 'bernadette', date: 'Fri 26 Sep 2026', reviewMonth: 'September', status: 'Scheduled',
+      answered: 0, total: 172, score: null, priorDate: 'Fri 22 Aug 2026', photos: 0, findings: 0 }
   ];
+  D.visit = function (id) { for (var i = 0; i < D.VISITS.length; i++) if (D.VISITS[i].id === id) return D.VISITS[i]; return null; };
 
-  /* ---------------- location reviews (E5) ---------------- */
-  D.REVIEWS = [
-    { id: 'LR-1182', loc: 'LOC-AS', by: 'alexis', date: 'Tue 16 Sep 2026', status: 'In progress', answered: 57, total: 118, mins: 41, geo: 'Matched, 24 m from the registered address', started: '09:05', photos: 3 },
-    { id: 'LR-1176', loc: 'LOC-BR', by: 'alexis', date: 'Thu 4 Sep 2026', status: 'Completed', answered: 118, total: 118, mins: 96, geo: 'Matched, 8 m from the registered address', score: 92, findings: 6, photos: 11 },
-    { id: 'LR-1171', loc: 'LOC-CA', by: 'alexis', date: 'Wed 20 Aug 2026', status: 'Completed', answered: 118, total: 118, mins: 88, geo: 'Matched, 15 m from the registered address', score: 96, findings: 2, photos: 7 },
-    { id: 'LR-1164', loc: 'LOC-AS', by: 'alexis', date: 'Mon 4 Aug 2026', status: 'Completed', answered: 118, total: 118, mins: 104, geo: 'Matched, 19 m from the registered address', score: 81, findings: 12, photos: 14 },
-    { id: 'LR-1158', loc: 'LOC-DU', by: 'dominic', date: 'Tue 22 Jul 2026', status: 'Completed', answered: 118, total: 118, mins: 91, geo: 'Matched, 11 m from the registered address', score: 78, findings: 15, photos: 9 },
-    { id: 'LR-1190', loc: 'LOC-CA', by: 'alexis', date: 'Due Fri 26 Sep 2026', status: 'Scheduled', answered: 0, total: 118, mins: 0, geo: null, photos: 0 }
-  ];
-  D.review = function (id) { for (var i = 0; i < D.REVIEWS.length; i++) if (D.REVIEWS[i].id === id) return D.REVIEWS[i]; return null; };
-
-  /* ---------------- action items (E6) ---------------- */
+  /* ---------------- action items and to-dos ---------------- */
   D.ACTIONS = [
-    { id: 'AI-8821', t: 'Check the procedure version at the start of every shift, observed twice by the manager', owner: 'dana', by: 'priya', from: 'FM-20904', due: 'Fri 19 Sep 2026', status: 'Open', loc: 'LOC-AS', notes: [{ on: 'Mon 15 Sep', by: 'priya', t: 'Observed once, correct. One more to close.' }] },
-    { id: 'AI-8822', t: 'Record work in the system as it is completed, not at the end of the shift', owner: 'dana', by: 'priya', from: 'FM-20904', due: 'Fri 19 Sep 2026', status: 'Open', loc: 'LOC-AS', notes: [] },
-    { id: 'AI-8794', t: 'Close recording before leaving the workstation', owner: 'dana', by: 'priya', from: 'FM-20877', due: 'Fri 12 Sep 2026', status: 'Overdue', loc: 'LOC-AS', notes: [{ on: 'Fri 12 Sep', by: 'priya', t: 'Still batching at the end of the week. Carried into the next observation.' }], carried: true },
-    { id: 'AI-8760', t: 'Shadow Lorna Bekele for one shift on recording discipline', owner: 'dana', by: 'priya', from: 'FM-20862', due: 'Fri 29 Aug 2026', status: 'Closed', loc: 'LOC-AS', closedOn: 'Thu 28 Aug 2026', notes: [{ on: 'Thu 28 Aug', by: 'priya', t: 'Shadow shift completed.' }] },
-    { id: 'AI-8702', t: 'Set a two hour recording reminder on the shift device', owner: 'dana', by: 'priya', from: 'FM-20831', due: 'Fri 1 Aug 2026', status: 'Closed', loc: 'LOC-AS', closedOn: 'Wed 30 Jul 2026', notes: [] },
-    { id: 'AI-8840', t: 'Review open action items before each conversation, not after', owner: 'simone', by: 'ruben', from: 'FM-20930', due: 'Mon 22 Sep 2026', status: 'Open', loc: 'LOC-BR', notes: [] },
-    { id: 'AI-8851', t: 'Equipment in the east bay out of inspection date, log and service', owner: 'oscar', by: 'alexis', from: 'LR-1164', due: 'Fri 8 Aug 2026', status: 'Closed', loc: 'LOC-AS', closedOn: 'Wed 6 Aug 2026', notes: [{ on: 'Wed 6 Aug', by: 'oscar', t: 'Serviced and retagged.' }] },
-    { id: 'AI-8852', t: 'Unplanned absence above 8% for four months, build a cover plan with HR', owner: 'curtis', by: 'alexis', from: 'LR-1164', due: 'Fri 19 Sep 2026', status: 'Open', loc: 'LOC-AS', notes: [{ on: 'Mon 1 Sep', by: 'curtis', t: 'Two internal hires start 22 Sep. Plan drafted, not yet agreed with HR.' }], carried: true },
-    { id: 'AI-8853', t: 'Audit file missing the last two governance minutes', owner: 'curtis', by: 'alexis', from: 'LR-1164', due: 'Mon 18 Aug 2026', status: 'Closed', loc: 'LOC-AS', closedOn: 'Fri 15 Aug 2026', notes: [] },
-    { id: 'AI-8860', t: 'Service desk staffed below the assessed demand at peak', owner: 'imani', by: 'alexis', from: 'LR-1176', due: 'Fri 26 Sep 2026', status: 'Open', loc: 'LOC-BR', notes: [] },
-    { id: 'AI-8861', t: 'Signage did not match the current procedure on two workstations', owner: 'simone', by: 'alexis', from: 'LR-1176', due: 'Fri 12 Sep 2026', status: 'Overdue', loc: 'LOC-BR', notes: [] },
-    { id: 'AI-8870', t: 'Stock discrepancy from 3 Sep still open', owner: 'wren', by: 'dominic', from: 'LR-1158', due: 'Fri 19 Sep 2026', status: 'Open', loc: 'LOC-DU', notes: [] }
+    { id: 'AI-8851', t: 'Water temperature out of range at the east wing sink. Log it and repair.', owner: 'oscar', by: 'alexis',
+      from: 'SV-1164', fromKind: 'visit', due: 'Fri 8 Aug 2026', status: 'Closed', site: 'CM-CH', closedOn: 'Wed 6 Aug 2026',
+      notes: [{ on: 'Wed 6 Aug', by: 'oscar', t: 'Mixing valve replaced, retested at 43 C.' }] },
+    { id: 'AI-8852', t: 'Agency use above 10% for four months. Build a staffing plan with HR.', owner: 'curtis', by: 'alexis',
+      from: 'SV-1164', fromKind: 'visit', due: 'Fri 19 Sep 2026', status: 'Overdue', site: 'CM-CH',
+      notes: [{ on: 'Mon 1 Sep', by: 'curtis', t: 'Two internal hires start 22 Sep. Plan drafted, not yet agreed with HR.' }] },
+    { id: 'AI-8853', t: 'Survey binder missing the last two QAPI minutes.', owner: 'curtis', by: 'alexis',
+      from: 'SV-1164', fromKind: 'visit', due: 'Mon 18 Aug 2026', status: 'Closed', site: 'CM-CH', closedOn: 'Fri 15 Aug 2026', notes: [] },
+    { id: 'AI-8870', t: 'Creativity boxes below the fifteen minimum. Restock and log.', owner: 'yolanda', by: 'alexis',
+      from: 'SV-1182', fromKind: 'visit', due: 'Fri 2 Oct 2026', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8871', t: 'Dining room tables not set to standard at lunch. Reset and audit for two weeks.', owner: 'imani', by: 'alexis',
+      from: 'SV-1182', fromKind: 'visit', due: 'Fri 25 Sep 2026', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8872', t: 'Last three fire drills not documented. Complete and file.', owner: 'oscar', by: 'alexis',
+      from: 'SV-1182', fromKind: 'visit', due: 'Fri 25 Sep 2026', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8873', t: 'Incident reports not reaching the Regional within 24 hours. Review the process with the leadership team.',
+      owner: 'curtis', by: 'alexis', from: 'SV-1182', fromKind: 'visit', due: 'Fri 25 Sep 2026', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8880', t: 'Confirm uniform and badge with the charge nurse at the start of each shift for four weeks.',
+      owner: 'dana', by: 'priya', from: 'PIP-412', fromKind: 'pip', due: 'Fri 16 Oct 2026', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8885', t: 'Complete the medication technician pathway.', owner: 'lorna', by: 'priya',
+      from: 'EV-2026-041', fromKind: 'eval', due: 'Fri 27 Mar 2027', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8886', t: 'Lead the clinical team huddle once a month.', owner: 'lorna', by: 'priya',
+      from: 'EV-2026-041', fromKind: 'eval', due: 'Ongoing', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8890', t: 'Reduce agency use below 8%.', owner: 'priya', by: 'curtis',
+      from: 'EV-2026-033', fromKind: 'eval', due: 'Fri 31 Jul 2027', status: 'Open', site: 'CM-CH', notes: [] }
   ];
   D.action = function (id) { for (var i = 0; i < D.ACTIONS.length; i++) if (D.ACTIONS[i].id === id) return D.ACTIONS[i]; return null; };
 
-  /* ---------------- performance management (E7) ---------------- */
-  D.TRACKS = [
-    { key: 'attendance', name: 'Attendance', subs: ['Unplanned absence', 'Lateness', 'No call no show'] },
-    { key: 'performance', name: 'Job performance', subs: ['Work standard', 'Recording and accuracy', 'Skill competency'] },
-    { key: 'conduct', name: 'Conduct', subs: ['Respect at work', 'Policy breach', 'Failure to follow procedure'] }
+  /* ---------------- retention and the system of record ---------------- */
+  D.EXPORT_LOG = [
+    { what: 'Employee file', by: 'grant', subject: 'camille', reason: 'Termination, 11 May 2026. One-time export.', on: 'Mon 11 May 2026 16:20' },
+    { what: 'Employee file', by: 'grant', subject: 'esther', reason: 'Unemployment claim response', on: 'Thu 3 Sep 2026 11:20' }
   ];
-  D.STEPS = [
-    { key: 'counseling', name: 'Documented counselling', expiry: '6 months', letter: false },
-    { key: 'written', name: 'Written warning', expiry: '12 months', letter: true },
-    { key: 'final', name: 'Final written warning', expiry: '12 months', letter: true },
-    { key: 'termination', name: 'Termination', expiry: null, letter: true }
-  ];
-  D.CASE_ACTIONS = ['Progress to next step', 'Move down a step', 'Change activation date', 'Change expiration date', 'Edit letter', 'Close case', 'Rescind, as if it never existed'];
-
-  D.CASES = [
-    { id: 'PC-3391', emp: 'dana', track: 'performance', sub: 'Recording and accuracy', step: 'written', status: 'Pending approval', opened: 'Mon 15 Sep 2026', by: 'priya', loc: 'LOC-AS',
-      evidence: ['FM-20831', 'FM-20877', 'FM-20862', 'FM-20904'], wizardStep: 4, letter: true, next: 'alexis',
-      approvals: [
-        { who: 'priya', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 15 Sep 2026 16:22' },
-        { who: 'curtis', role: 'One level above, Location Director', state: 'Approved', on: 'Tue 16 Sep 2026 08:10' },
-        { who: 'alexis', role: 'Two levels above, Division Director', state: 'Waiting', on: null },
-        { who: 'grant', role: 'HR review', state: 'Waiting', on: null }],
-      audit: [
-        { on: 'Mon 15 Sep 2026 15:48', who: 'priya', what: 'Case opened on track Job performance, subtrack Recording and accuracy.' },
-        { on: 'Mon 15 Sep 2026 15:52', who: 'priya', what: 'Four prior coaching forms attached automatically as documentation.' },
-        { on: 'Mon 15 Sep 2026 16:09', who: 'priya', what: 'Letter generated from the Written warning template.' },
-        { on: 'Mon 15 Sep 2026 16:22', who: 'priya', what: 'Submitted for approval and review.' },
-        { on: 'Tue 16 Sep 2026 08:10', who: 'curtis', what: 'Approved at one level above.' }] },
-    { id: 'PC-3374', emp: 'teodor', track: 'attendance', sub: 'Unplanned absence', step: 'counseling', status: 'Open', opened: 'Thu 21 Aug 2026', by: 'wren', loc: 'LOC-DU',
-      evidence: ['FM-20812'], activated: 'Fri 22 Aug 2026', expires: 'Sun 22 Feb 2027', daysLeft: 159, wizardStep: 5, letter: false,
-      approvals: [
-        { who: 'wren', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Thu 21 Aug 2026 11:30' },
-        { who: 'harriet', role: 'One level above, Location Director', state: 'Approved', on: 'Thu 21 Aug 2026 16:02' },
-        { who: 'dominic', role: 'Two levels above, Division Director', state: 'Approved', on: 'Fri 22 Aug 2026 09:14' },
-        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Fri 22 Aug 2026 10:41' }],
-      audit: [
-        { on: 'Thu 21 Aug 2026 11:12', who: 'wren', what: 'Case opened on track Attendance, subtrack Unplanned absence.' },
-        { on: 'Fri 22 Aug 2026 10:41', who: 'grant', what: 'All approvals recorded. Case activated, step expires 22 Feb 2027.' }] },
-    { id: 'PC-3360', emp: 'esther', track: 'conduct', sub: 'Policy breach', step: 'written', status: 'Open', opened: 'Tue 5 Aug 2026', by: 'simone', loc: 'LOC-BR',
-      evidence: [], activated: 'Thu 7 Aug 2026', expires: 'Fri 7 Aug 2027', daysLeft: 325, wizardStep: 5, letter: true,
-      approvals: [
-        { who: 'simone', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Tue 5 Aug 2026 09:00' },
-        { who: 'ruben', role: 'One level above, Location Director', state: 'Approved', on: 'Tue 5 Aug 2026 14:20' },
-        { who: 'alexis', role: 'Two levels above, Division Director', state: 'Approved', on: 'Wed 6 Aug 2026 08:45' },
-        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Thu 7 Aug 2026 11:05' }],
-      audit: [{ on: 'Thu 7 Aug 2026 11:05', who: 'grant', what: 'Case activated. Letter acknowledged by the employee the same day.' }] },
-    { id: 'PC-3402', emp: 'trevor', track: 'performance', sub: 'Skill competency', step: 'counseling', status: 'Draft', opened: 'Tue 16 Sep 2026', by: 'priya', loc: 'LOC-AS',
-      evidence: [], wizardStep: 2, letter: false, approvals: [], audit: [{ on: 'Tue 16 Sep 2026 10:02', who: 'priya', what: 'Draft opened. Not yet submitted.' }] },
-    { id: 'PC-3298', emp: 'camille', track: 'attendance', sub: 'Lateness', step: 'counseling', status: 'Closed', opened: 'Mon 10 Mar 2026', by: 'ivan', loc: 'LOC-CA',
-      evidence: [], activated: 'Wed 12 Mar 2026', expires: 'Sat 12 Sep 2026', closed: 'Sat 12 Sep 2026', disposition: 'Expired', wizardStep: 5, letter: false,
-      approvals: [{ who: 'ivan', role: 'Initiator, Customer Service Manager', state: 'Submitted', on: 'Mon 10 Mar 2026 13:00' }],
-      audit: [{ on: 'Sat 12 Sep 2026 00:00', who: 'System', what: 'Step expired after 6 months. No longer counts toward the ladder.' }] },
-    { id: 'PC-3301', emp: 'kai', track: 'conduct', sub: 'Respect at work', step: 'written', status: 'Closed', opened: 'Thu 19 Mar 2026', by: 'simone', loc: 'LOC-BR',
-      evidence: [], wizardStep: 5, letter: true, closed: 'Tue 7 Apr 2026', disposition: 'Rescinded',
-      approvals: [{ who: 'simone', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Thu 19 Mar 2026 09:20' }],
-      audit: [{ on: 'Tue 7 Apr 2026 15:30', who: 'grant', what: 'Rescinded after appeal. Record retained, step removed from the ladder.' }] }
-  ];
-  D.kase = function (id) { for (var i = 0; i < D.CASES.length; i++) if (D.CASES[i].id === id) return D.CASES[i]; return null; };
-
-  D.LETTER = function (c) {
-    var e = D.byId(c.emp), s = D.STEPS.filter(function (x) { return x.key === c.step; })[0];
-    return {
-      title: s.name,
-      body: [
-        'This letter confirms a ' + s.name.toLowerCase() + ' issued to ' + e.name + ', ' + e.title + ' at ' + D.locName(c.loc) + '.',
-        'Concern: ' + D.TRACKS.filter(function (t) { return t.key === c.track; })[0].name + ', ' + c.sub + '.',
-        'Prior coaching on record: ' + (c.evidence.length ? c.evidence.length + ' documented conversations between 22 Jul 2026 and 12 Sep 2026' : 'none attached') + '.',
-        'Expectation going forward: work is recorded in the system as it is completed, at the end of every task, with no exceptions.',
-        'Support provided: a shadow shift with a peer, a recording reminder on the shift device, and twice weekly check ins with the manager for four weeks.',
-        'Consequence if the expectation is not met: the next step on this track is a final written warning.',
-        (s.expiry ? 'This step remains active for ' + s.expiry + ' from the date of activation.' : '')
-      ].filter(Boolean)
-    };
-  };
-
-  /* ---------------- reporting (E9) ---------------- */
-  D.COMPLETION = [
-    { scope: 'LOC-AS', label: 'Ashford', due: 62, done: 42, leaders: 5, onTime: 71 },
-    { scope: 'LOC-BR', label: 'Brackenfield', due: 74, done: 68, leaders: 6, onTime: 92 },
-    { scope: 'LOC-CA', label: 'Calderton', due: 41, done: 39, leaders: 4, onTime: 95 },
-    { scope: 'LOC-DU', label: 'Dunmore', due: 69, done: 44, leaders: 6, onTime: 64 },
-    { scope: 'LOC-EA', label: 'Eastgate', due: 52, done: 47, leaders: 5, onTime: 90 },
-    { scope: 'LOC-FA', label: 'Fairhaven', due: 34, done: 33, leaders: 3, onTime: 97 }
-  ];
-  D.COMPLETION_BY_LEADER = [
-    { who: 'priya', due: 22, done: 15 }, { who: 'imani', due: 11, done: 9 }, { who: 'oscar', due: 9, done: 8 },
-    { who: 'curtis', due: 12, done: 6 }, { who: 'simone', due: 24, done: 23 }, { who: 'malik', due: 12, done: 11 },
-    { who: 'ruben', due: 14, done: 13 }, { who: 'ivan', due: 18, done: 17 }, { who: 'wren', due: 26, done: 16 },
-    { who: 'harriet', due: 13, done: 8 }, { who: 'jonah', due: 15, done: 14 }
-  ];
-  D.FORMS_BY_TYPE = [
-    ['FT-OBS', 186], ['FT-HUD', 142], ['FT-REC', 88], ['FT-CHK', 71], ['FT-SKV', 34], ['FT-GPL', 41],
-    ['FT-L11', 63], ['FT-MRC', 19], ['FT-LDP', 11], ['FT-LOC', 14], ['FT-CMP', 22], ['FT-SVC', 18], ['FT-SAF', 26]
-  ];
-
-  /* ---------------- cross group (E3) ---------------- */
-  D.CROSS = [
-    { id: 'XG-221', emp: 'nadia', by: 'talia', loc: 'LOC-AS', on: 'Mon 14 Sep 2026', topic: 'Secure area left unlocked during a compliance audit', state: 'Sent to manager', leader: 'priya', suggest: 'FT-CHK' },
-    { id: 'XG-219', emp: 'halle', by: 'talia', loc: 'LOC-AS', on: 'Thu 10 Sep 2026', topic: 'Restocked protective equipment without being asked, twice in one week', state: 'Accepted', leader: 'oscar', suggest: 'FT-REC' },
-    { id: 'XG-214', emp: 'teodor', by: 'talia', loc: 'LOC-DU', on: 'Tue 2 Sep 2026', topic: 'Waste handled in the walkway rather than at the point of use', state: 'Sent to manager', leader: 'wren', suggest: 'FT-CHK' },
-    { id: 'XG-208', emp: 'esther', by: 'talia', loc: 'LOC-BR', on: 'Wed 20 Aug 2026', topic: 'Procedure step skipped during a safety walk', state: 'Declined', leader: 'simone', suggest: 'FT-CHK', why: 'Already coached on 18 Aug, form FM-20850.' }
-  ];
-
-  /* ---------------- integrity (E10) ---------------- */
-  D.GUARDRAILS = [
-    { id: 'GR-1', name: 'Restricted investigatory material', state: 'Blocked', desc: 'Formal investigations are held in the HR case system, not here. Free text fields and uploads reject anything tagged to an open investigation.' },
-    { id: 'GR-2', name: 'Third party personal data in free text', state: 'Warned', desc: 'Customer or patient names typed into an observation are flagged before submission. The manager is asked to use a reference instead.' },
-    { id: 'GR-3', name: 'Protected characteristic language', state: 'Warned', desc: 'Language describing age, disability, pregnancy, religion or national origin is flagged for rewording before the record becomes immutable.' },
-    { id: 'GR-4', name: 'Coaching outside the reporting line', state: 'Allowed with attribution', desc: 'Cross group suggestions are visible to the employee manager and are always attributed to the suggesting department.' },
-    { id: 'GR-5', name: 'Backdating a submission', state: 'Blocked', desc: 'The submitted timestamp is server side. A form completed late records the true time and shows the gap.' }
-  ];
+  D.SYNC_FIELDS = ['Reporting line', 'Job title', 'Community', 'Department', 'Start date', 'Employment status'];
   D.RETENTION = [
-    { what: 'Coaching forms and location reviews', keep: '7 years from submission', then: 'Anonymised, aggregate reporting retained' },
-    { what: 'Active discipline steps', keep: 'Until step expiry, then 7 years', then: 'Removed from the ladder, retained in the file' },
-    { what: 'Rescinded records', keep: '7 years, flagged as rescinded', then: 'Never counted toward a later step' },
-    { what: 'Employee file exports', keep: 'Export log kept 7 years', then: 'The export package itself is not stored' },
-    { what: 'Location and duration telemetry', keep: '2 years', then: 'Dropped from the record, form remains' }
+    { what: 'Coaching records', keep: 'Held while the employee is active', then: 'Exported with the file on termination' },
+    { what: 'PIPs and evaluations', keep: 'Held while the employee is active', then: 'Exported with the file, and written to the employee file during the plan' },
+    { what: 'Site visits', keep: 'Held against the community and the Executive Director', then: 'Retained, not part of a personal export' },
+    { what: 'Terminated employee file', keep: 'Retention period to be confirmed', then: 'One-time export, then searchable by name for the retention period' }
   ];
-
-  /* ---------------- competency framework ----------------
-     Four levels, used by both the development plan and skill validation. */
-  D.LEVELS_SKILL = [
-    { n: 1, name: 'Learning', desc: 'Needs supervision' },
-    { n: 2, name: 'Capable', desc: 'Works unsupervised' },
-    { n: 3, name: 'Strong', desc: 'Handles exceptions' },
-    { n: 4, name: 'Coaches others', desc: 'Sets the standard' }
-  ];
-  D.COMPETENCIES = [
-    { id: 'C-ACC', name: 'Accuracy and recording', area: 'Core' },
-    { id: 'C-PRO', name: 'Procedure adherence', area: 'Core' },
-    { id: 'C-CUS', name: 'Customer handling', area: 'Core' },
-    { id: 'C-EXC', name: 'Exception handling', area: 'Technical' },
-    { id: 'C-SYS', name: 'Systems and tools', area: 'Technical' },
-    { id: 'C-COM', name: 'Communication', area: 'Behavioural' },
-    { id: 'C-TEA', name: 'Teamwork', area: 'Behavioural' },
-    { id: 'C-LEAD', name: 'Coaching others', area: 'Leadership' }
-  ];
-  D.competency = function (id) { for (var i = 0; i < D.COMPETENCIES.length; i++) if (D.COMPETENCIES[i].id === id) return D.COMPETENCIES[i]; return { id: id, name: id, area: '' }; };
-  /* [competency, current, target, validated] per person */
-  D.SKILLS = {
-    dana: [['C-ACC', 1, 3, null], ['C-PRO', 2, 3, 'Mar 2026'], ['C-CUS', 3, 3, 'Jan 2026'], ['C-EXC', 1, 2, null], ['C-SYS', 2, 3, 'Nov 2025'], ['C-COM', 3, 3, 'Jan 2026']],
-    lorna: [['C-ACC', 4, 4, 'Aug 2026'], ['C-PRO', 4, 4, 'Aug 2026'], ['C-CUS', 3, 3, 'May 2026'], ['C-EXC', 3, 3, 'May 2026'], ['C-SYS', 3, 3, 'Feb 2026'], ['C-COM', 3, 3, 'Feb 2026']],
-    trevor: [['C-ACC', 2, 3, null], ['C-PRO', 1, 3, null], ['C-CUS', 2, 3, null], ['C-EXC', 1, 2, null], ['C-SYS', 1, 3, null], ['C-COM', 2, 3, null]],
-    marisol: [['C-ACC', 4, 4, 'Jun 2026'], ['C-PRO', 4, 4, 'Jun 2026'], ['C-CUS', 3, 4, 'Apr 2026'], ['C-EXC', 4, 4, 'Jun 2026'], ['C-SYS', 3, 4, 'Apr 2026'], ['C-LEAD', 2, 3, null]],
-    nadia: [['C-ACC', 3, 3, 'Jul 2026'], ['C-PRO', 3, 3, 'Jul 2026'], ['C-CUS', 2, 3, null], ['C-EXC', 2, 3, null], ['C-SYS', 3, 3, 'Mar 2026'], ['C-COM', 3, 3, 'Mar 2026']],
-    devon: [['C-CUS', 2, 3, null], ['C-COM', 2, 3, null], ['C-SYS', 2, 3, 'Apr 2026'], ['C-TEA', 3, 3, 'Apr 2026']],
-    priya: [['C-LEAD', 2, 4, null], ['C-COM', 3, 4, 'Feb 2026'], ['C-ACC', 4, 4, 'Feb 2026'], ['C-TEA', 3, 4, 'Feb 2026']]
-  };
-
-  /* ---------------- development plans ----------------
-     The forward looking half of the product. A goal names a competency, a
-     target level and a date. It is not remediation and never feeds a case. */
-  D.DEV_PLANS = [
-    { id: 'DP-701', emp: 'dana', owner: 'priya', cycle: 'H2 2026', status: 'Active', opened: 'Mon 6 Jul 2026', review: 'Fri 2 Oct 2026',
-      goals: [
-        { id: 'G-1', t: 'Reach Strong on accuracy and recording', c: 'C-ACC', from: 1, to: 3, due: 'Fri 2 Oct 2026', pct: 35, status: 'Open',
-          how: 'Close recording before leaving the workstation, shadow a peer for one shift, one skill validation.' },
-        { id: 'G-2', t: 'Reach Capable on exception handling', c: 'C-EXC', from: 1, to: 2, due: 'Fri 30 Oct 2026', pct: 10, status: 'Open',
-          how: 'Complete the exceptions module, then handle five exceptions with the manager observing.' }],
-      checkins: [
-        { on: 'Fri 7 Aug 2026', by: 'priya', t: 'Recording improving on early shifts, still slipping on lates.' },
-        { on: 'Fri 4 Sep 2026', by: 'priya', t: 'Shadow shift done. Skill validation not yet booked.' }] },
-    { id: 'DP-704', emp: 'trevor', owner: 'priya', cycle: 'H2 2026', status: 'Active', opened: 'Mon 20 Jul 2026', review: 'Fri 16 Oct 2026',
-      goals: [
-        { id: 'G-1', t: 'Reach Capable on procedure adherence', c: 'C-PRO', from: 1, to: 3, due: 'Fri 16 Oct 2026', pct: 55, status: 'Open',
-          how: 'New starter pathway, weekly check in, sign off at day 90.' },
-        { id: 'G-2', t: 'Reach Capable on systems and tools', c: 'C-SYS', from: 1, to: 3, due: 'Fri 16 Oct 2026', pct: 40, status: 'Open',
-          how: 'Systems module plus a supervised run on each of the three tools.' }],
-      checkins: [{ on: 'Fri 21 Aug 2026', by: 'priya', t: 'Ahead of the pathway on procedure. Systems is the gap.' }] },
-    { id: 'DP-710', emp: 'marisol', owner: 'priya', cycle: 'H2 2026', status: 'Active', opened: 'Mon 6 Jul 2026', review: 'Fri 2 Oct 2026',
-      goals: [
-        { id: 'G-1', t: 'Reach Strong on coaching others', c: 'C-LEAD', from: 2, to: 3, due: 'Fri 27 Nov 2026', pct: 60, status: 'Open',
-          how: 'Run three team huddles, co-run two observations with the manager.' }],
-      checkins: [{ on: 'Fri 4 Sep 2026', by: 'priya', t: 'Two huddles run and well received. Ready for the first co-observation.' }] },
-    { id: 'DP-688', emp: 'lorna', owner: 'priya', cycle: 'H1 2026', status: 'Complete', opened: 'Mon 12 Jan 2026', review: 'Fri 26 Jun 2026',
-      goals: [{ id: 'G-1', t: 'Reach Coaches others on accuracy', c: 'C-ACC', from: 3, to: 4, due: 'Fri 26 Jun 2026', pct: 100, status: 'Met',
-        how: 'Validate three peers, own the accuracy section of the weekly huddle.' }],
-      checkins: [{ on: 'Fri 26 Jun 2026', by: 'priya', t: 'Met. Now the reference point for accuracy on the team.' }] },
-    { id: 'DP-715', emp: 'nadia', owner: 'priya', cycle: 'H2 2026', status: 'Draft', opened: 'Tue 15 Sep 2026', review: 'Fri 30 Oct 2026',
-      goals: [], checkins: [] },
-    { id: 'DP-720', emp: 'priya', owner: 'curtis', cycle: 'H2 2026', status: 'Active', opened: 'Mon 13 Jul 2026', review: 'Fri 9 Oct 2026',
-      goals: [{ id: 'G-1', t: 'Reach Coaches others on leadership', c: 'C-LEAD', from: 2, to: 4, due: 'Fri 18 Dec 2026', pct: 25, status: 'Open',
-        how: 'Lift touch point completion above 90%, mentor one new manager, complete the leader pathway.' }],
-      checkins: [{ on: 'Fri 4 Sep 2026', by: 'curtis', t: 'Completion is the blocker at 68%. Everything else is on track.' }] }
-  ];
-  D.devPlan = function (id) { for (var i = 0; i < D.DEV_PLANS.length; i++) if (D.DEV_PLANS[i].id === id) return D.DEV_PLANS[i]; return null; };
-  D.devPlanFor = function (emp) { return D.DEV_PLANS.filter(function (p) { return p.emp === emp; })[0] || null; };
-
-  /* ---------------- performance improvement plans ----------------
-     A PIP is not discipline. It is a fixed length, measured chance to recover,
-     and it sits between coaching and the discipline ladder. It ends one of
-     three ways and the ending is recorded. */
-  D.PIP_LENGTHS = [30, 60, 90];
-  D.PIP_OUTCOMES = ['Met', 'Not met', 'Extended'];
-  D.PIPS = [
-    { id: 'PIP-412', emp: 'teodor', owner: 'wren', status: 'Active', days: 60, opened: 'Mon 18 Aug 2026', start: 'Mon 25 Aug 2026',
-      end: 'Fri 23 Oct 2026', daysLeft: 37, loc: 'LOC-DU', reason: 'Quality score below standard for five consecutive periods.',
-      evidence: ['FM-20812'], letter: true,
-      objectives: [
-        { id: 'O-1', t: 'Quality score at or above 95% for four consecutive weeks', m: 'msr.quality', target: '95%', current: '89.4%', status: 'Behind' },
-        { id: 'O-2', t: 'No unplanned absence in the plan period', m: 'msr.absence', target: '0 occurrences', current: '1 occurrence', status: 'Behind' },
-        { id: 'O-3', t: 'Complete the accuracy module and pass the skill validation', m: null, target: 'Signed off', current: 'Module done', status: 'On track' }],
-      support: ['Weekly one to one with the manager', 'Accuracy module and a shadow shift', 'Workload reduced by 15% for the first four weeks'],
-      checkpoints: [
-        { on: 'Mon 8 Sep 2026', done: true, by: 'wren', rating: 'Partly met', t: 'Quality up to 91%. Absence occurrence on 3 Sep is the setback.' },
-        { on: 'Mon 22 Sep 2026', done: false, by: 'wren', rating: null, t: null },
-        { on: 'Mon 6 Oct 2026', done: false, by: 'wren', rating: null, t: null },
-        { on: 'Fri 23 Oct 2026', done: false, by: 'wren', rating: null, t: null }],
-      approvals: [
-        { who: 'wren', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 18 Aug 2026 09:40' },
-        { who: 'harriet', role: 'One level above, Location Director', state: 'Approved', on: 'Mon 18 Aug 2026 15:10' },
-        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 19 Aug 2026 10:02' }],
-      audit: [
-        { on: 'Mon 18 Aug 2026 09:22', who: 'wren', what: 'PIP opened, 60 days, three objectives.' },
-        { on: 'Tue 19 Aug 2026 10:02', who: 'grant', what: 'Approved by HR. Plan starts 25 Aug.' },
-        { on: 'Mon 8 Sep 2026 16:30', who: 'wren', what: 'Checkpoint 1 recorded as Partly met.' }] },
-    { id: 'PIP-408', emp: 'dana', owner: 'priya', status: 'Pending approval', days: 30, opened: 'Tue 16 Sep 2026', start: 'Mon 22 Sep 2026',
-      end: 'Fri 23 Oct 2026', daysLeft: null, loc: 'LOC-AS', reason: 'Recording and accuracy coached four times in ninety days without sustained change.',
-      evidence: ['FM-20831', 'FM-20877', 'FM-20862', 'FM-20904'], letter: true, next: 'curtis',
-      objectives: [
-        { id: 'O-1', t: 'Quality score at or above 95% for three consecutive weeks', m: 'msr.quality', target: '95%', current: '86.4%', status: 'Not started' },
-        { id: 'O-2', t: 'Work recorded before leaving the workstation on every shift', m: null, target: '100% of shifts', current: 'Not started', status: 'Not started' }],
-      support: ['Twice weekly check in with the manager for four weeks', 'Recording reminder on the shift device', 'Shadow shift with a peer'],
-      checkpoints: [
-        { on: 'Mon 6 Oct 2026', done: false, by: 'priya', rating: null, t: null },
-        { on: 'Fri 23 Oct 2026', done: false, by: 'priya', rating: null, t: null }],
-      approvals: [
-        { who: 'priya', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Tue 16 Sep 2026 11:05' },
-        { who: 'curtis', role: 'One level above, Location Director', state: 'Waiting', on: null },
-        { who: 'grant', role: 'HR review', state: 'Waiting', on: null }],
-      audit: [{ on: 'Tue 16 Sep 2026 10:48', who: 'priya', what: 'PIP opened, 30 days, two objectives. Four coaching forms attached.' },
-        { on: 'Tue 16 Sep 2026 11:05', who: 'priya', what: 'Submitted for approval and review.' }] },
-    { id: 'PIP-416', emp: 'nadia', owner: 'priya', status: 'Active', days: 30, opened: 'Mon 24 Aug 2026', start: 'Mon 31 Aug 2026',
-      end: 'Fri 2 Oct 2026', daysLeft: 16, loc: 'LOC-AS', reason: 'Output per shift below standard for two consecutive months.',
-      evidence: ['FM-20871'], letter: true,
-      objectives: [
-        { id: 'O-1', t: 'Output per shift at or above 42 for two consecutive weeks', m: 'msr.output', target: '42.0', current: '40.6', status: 'On track' },
-        { id: 'O-2', t: 'Quality score stays at or above 92% while output rises', m: 'msr.quality', target: '92%', current: '92.6%', status: 'On track' }],
-      support: ['Weekly one to one with the manager', 'Tool setup walkthrough with a senior associate', 'Paired with Marisol Quintero for two shifts'],
-      checkpoints: [
-        { on: 'Mon 7 Sep 2026', done: true, by: 'priya', rating: 'On track', t: 'Output up from 38.8 to 40.6 without any drop in quality.' },
-        { on: 'Mon 21 Sep 2026', done: false, by: 'priya', rating: null, t: null },
-        { on: 'Fri 2 Oct 2026', done: false, by: 'priya', rating: null, t: null }],
-      approvals: [
-        { who: 'priya', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 24 Aug 2026 10:15' },
-        { who: 'curtis', role: 'One level above, Location Director', state: 'Approved', on: 'Mon 24 Aug 2026 14:40' },
-        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 25 Aug 2026 09:30' }],
-      audit: [
-        { on: 'Mon 24 Aug 2026 10:02', who: 'priya', what: 'PIP opened, 30 days, two objectives.' },
-        { on: 'Tue 25 Aug 2026 09:30', who: 'grant', what: 'Approved by HR. Plan starts 31 Aug.' },
-        { on: 'Mon 7 Sep 2026 15:20', who: 'priya', what: 'Checkpoint 1 recorded as On track.' }] },
-    { id: 'PIP-395', emp: 'esther', owner: 'simone', status: 'Completed', days: 60, opened: 'Mon 12 May 2026', start: 'Mon 19 May 2026',
-      end: 'Fri 17 Jul 2026', loc: 'LOC-BR', reason: 'Schedule adherence below standard.', outcome: 'Met', letter: true, evidence: [],
-      objectives: [{ id: 'O-1', t: 'Schedule adherence at or above 95%', m: 'msr.adherence', target: '95%', current: '96.2%', status: 'Met' }],
-      support: ['Weekly one to one', 'Shift pattern reviewed with scheduling'],
-      checkpoints: [
-        { on: 'Mon 2 Jun 2026', done: true, by: 'simone', rating: 'On track', t: 'Adherence at 93%, trending up.' },
-        { on: 'Fri 17 Jul 2026', done: true, by: 'simone', rating: 'Met', t: 'Sustained above 95% for six weeks. Plan closed as met.' }],
-      approvals: [{ who: 'simone', role: 'Initiator, Operations Manager', state: 'Submitted', on: 'Mon 12 May 2026 10:00' },
-        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 13 May 2026 09:15' }],
-      audit: [{ on: 'Fri 17 Jul 2026 16:00', who: 'simone', what: 'Closed as Met. No further action.' }] },
-    { id: 'PIP-380', emp: 'camille', owner: 'ivan', status: 'Completed', days: 90, opened: 'Mon 3 Feb 2026', start: 'Mon 10 Feb 2026',
-      end: 'Fri 15 May 2026', loc: 'LOC-CA', reason: 'Customer satisfaction below standard.', outcome: 'Extended', letter: true, evidence: [],
-      objectives: [{ id: 'O-1', t: 'Customer satisfaction at or above 4.4', m: 'msr.csat', target: '4.40', current: '4.35', status: 'Behind' }],
-      support: ['Customer handling module', 'Call reviews twice a week'],
-      checkpoints: [{ on: 'Fri 15 May 2026', done: true, by: 'ivan', rating: 'Partly met', t: 'Close to target and still improving. Extended by 30 days rather than escalated.' }],
-      approvals: [{ who: 'ivan', role: 'Initiator, Customer Service Manager', state: 'Submitted', on: 'Mon 3 Feb 2026 09:00' }],
-      audit: [{ on: 'Fri 15 May 2026 15:00', who: 'ivan', what: 'Extended by 30 days. Closed as Extended on the original plan.' }] }
-  ];
-  D.pip = function (id) { for (var i = 0; i < D.PIPS.length; i++) if (D.PIPS[i].id === id) return D.PIPS[i]; return null; };
-
-  /* ---------------- continuous and 360 feedback ---------------- */
-  D.FEEDBACK = [
-    { id: 'FB-921', to: 'lorna', from: 'imani', on: 'Mon 14 Sep 2026', kind: 'Praise', vis: 'Visible to Lorna and their manager',
-      t: 'Picked up two of my team\'s escalations on Friday without being asked, and closed both the same day.' },
-    { id: 'FB-918', to: 'dana', from: 'marisol', on: 'Fri 11 Sep 2026', kind: 'Suggestion', vis: 'Visible to Dana and their manager',
-      t: 'The morning run goes faster if you set the tool up before the first batch rather than between batches.' },
-    { id: 'FB-915', to: 'devon', from: 'yolanda', on: 'Wed 9 Sep 2026', kind: 'Praise', vis: 'Visible to Devon and their manager',
-      t: 'Stayed calm with a difficult customer for twenty minutes and got them to a resolution.' },
-    { id: 'FB-910', to: 'priya', from: 'lorna', on: 'Mon 7 Sep 2026', kind: 'Suggestion', vis: 'Anonymous to the manager',
-      t: 'Huddles would land better earlier in the shift. By the end of the shift half the team has gone.' },
-    { id: 'FB-902', to: 'trevor', from: 'priya', on: 'Thu 3 Sep 2026', kind: 'Praise', vis: 'Visible to Trevor and their manager',
-      t: 'Asked for help at the right moment on the exception rather than guessing. That is exactly right.' }
-  ];
-  D.REVIEWS_360 = [
-    { id: 'R360-44', subject: 'priya', cycle: 'H2 2026', status: 'In progress', due: 'Fri 9 Oct 2026', opened: 'Mon 1 Sep 2026',
-      raters: [
-        { who: 'curtis', rel: 'Manager', state: 'Submitted', on: 'Wed 10 Sep 2026' },
-        { who: 'imani', rel: 'Peer', state: 'Submitted', on: 'Thu 11 Sep 2026' },
-        { who: 'oscar', rel: 'Peer', state: 'Waiting', on: null },
-        { who: 'dana', rel: 'Direct report', state: 'Submitted', on: 'Mon 8 Sep 2026' },
-        { who: 'lorna', rel: 'Direct report', state: 'Waiting', on: null },
-        { who: 'marisol', rel: 'Direct report', state: 'Submitted', on: 'Tue 9 Sep 2026' }],
-      themes: [['Clear expectations', 4.4], ['Availability', 3.6], ['Recognition given', 3.2], ['Fairness', 4.6], ['Development support', 3.8]] },
-    { id: 'R360-41', subject: 'simone', cycle: 'H2 2026', status: 'Complete', due: 'Fri 28 Aug 2026', opened: 'Mon 20 Jul 2026',
-      raters: [{ who: 'ruben', rel: 'Manager', state: 'Submitted', on: 'Mon 10 Aug 2026' },
-        { who: 'malik', rel: 'Peer', state: 'Submitted', on: 'Tue 11 Aug 2026' },
-        { who: 'kai', rel: 'Direct report', state: 'Submitted', on: 'Wed 12 Aug 2026' },
-        { who: 'esther', rel: 'Direct report', state: 'Submitted', on: 'Wed 12 Aug 2026' }],
-      themes: [['Clear expectations', 4.6], ['Availability', 4.4], ['Recognition given', 4.2], ['Fairness', 4.5], ['Development support', 4.3]] }
+  D.TO_SYSTEM_OF_RECORD = [
+    { what: 'Recognition', go: false }, { what: 'Coaching discussion', go: false },
+    { what: 'Policy and procedure', go: false }, { what: 'Team meeting', go: false },
+    { what: 'Annual evaluation', go: true }, { what: 'PIP, any level', go: true },
+    { what: 'Termination detail', go: true }, { what: 'Site visit', go: false }
   ];
 
   /* ---------------- notifications ---------------- */
   D.NOTIFS = {
     employee: [
-      { t: 'A written warning letter is waiting for your acknowledgement', time: '2h', ic: 'file-text', go: '#/records', unread: true },
-      { t: 'Action item AI-8794 is overdue', time: '1d', ic: 'triangle-alert', go: '#/coaching/actions', unread: true },
-      { t: 'Priya Raghavan documented a performance observation about you', time: '4d', ic: 'clipboard-list', go: '#/coaching', unread: false }
+      { t: 'Priya Raghavan documented a coaching discussion about you', time: '2h', ic: 'message-square-text', go: '#/mycoaching', unread: true },
+      { t: 'A Performance Improvement Plan is pending approval on your record', time: '1d', ic: 'clipboard-check', go: '#/mypip', unread: true },
+      { t: 'Your annual evaluation is scheduled for 25 September', time: '3d', ic: 'clipboard-list', go: '#/myfile', unread: false }
     ],
-    manager: [
-      { t: 'TP-4471 for Dana Whitfield is overdue', time: '3h', ic: 'triangle-alert', go: '#/todo', unread: true },
-      { t: 'Case PC-3391 approved by Curtis Nakamura', time: '6h', ic: 'circle-check', go: '#/cases/PC-3391', unread: true },
-      { t: 'Quality sent you a cross group suggestion for Nadia Farouk', time: '2d', ic: 'shield', go: '#/todo/crossgroup', unread: true },
-      { t: 'Your manager coaching review TP-4520 is due Friday', time: '2d', ic: 'compass', go: '#/todo', unread: false }
+    dept: [
+      { t: 'PIP-412 is with the Executive Director for approval', time: '4h', ic: 'clipboard-check', go: '#/pips/PIP-412', unread: true },
+      { t: 'Dana Whitfield acknowledged your coaching record', time: '6h', ic: 'circle-check', go: '#/coaching', unread: true },
+      { t: 'Annual evaluation for Dana Whitfield is due 25 September', time: '2d', ic: 'clipboard-list', go: '#/evaluations', unread: false }
+    ],
+    ed: [
+      { t: 'Alexis Moreau is on site now, site visit in progress', time: '1h', ic: 'building-2', go: '#/visits/SV-1182', unread: true },
+      { t: '4 action items assigned to you from the August site visit', time: '1d', ic: 'list-checks', go: '#/todos', unread: true },
+      { t: 'PIP-412 needs your approval', time: '4h', ic: 'gavel', go: '#/pips/PIP-412', unread: true }
+    ],
+    regional: [
+      { t: 'Cedar Hollow site visit is 57 of 172 answered', time: '1h', ic: 'building-2', go: '#/visits/SV-1182', unread: true },
+      { t: 'Lakeview Manor visit is due 26 September', time: '2d', ic: 'calendar', go: '#/visits', unread: false }
     ],
     hr: [
-      { t: 'Case PC-3391 reaches you after the division approval', time: '5h', ic: 'gavel', go: '#/cases/PC-3391', unread: true },
-      { t: 'Employee file export requested for an appeal hearing', time: '1d', ic: 'package', go: '#/records/exports', unread: true },
-      { t: 'PC-3298 expired on 12 Sep and left the ladder', time: '4d', ic: 'hourglass', go: '#/cases/PC-3298', unread: false }
+      { t: 'PIP-412 reaches you after the Executive Director approves', time: '4h', ic: 'clipboard-check', go: '#/pips/PIP-412', unread: true },
+      { t: 'Retention period for terminated files is still unset', time: '1d', ic: 'triangle-alert', go: '#/settings/retention', unread: true },
+      { t: 'One record was deleted this month', time: '6d', ic: 'trash-2', go: '#/records/deleted', unread: false }
     ]
   };
+  D.VISIT_SECTIONS = [{"key":"ir","title":"Incident Reporting (IR)","group":"Opening","items":["ED understands reporting requirements, methods, and timeline?","IR guideline posted for associates to know who to contact in certain IRs?","ED understands regulatory reporting requirements and timeline?","Incidents reported within 24 hours of occurrence to RDO within last 30 days?","Incident reports completed in full and timely?","Total Incidents Reported Last Quarter","Total Closed?","Reviewed Concern/Grievance Log. Resolutions documented?","Incident reports reviewed during Safety Meetings?"]},{"key":"cdd","title":"Clinical Denial & Discharge (CDD)","group":"Opening","items":["Reviewed Clinical Denial & Discharge Policy with CRD/ED/DON?","# of Clinical Denials last quarter?"]},{"key":"standup","title":"Stand-Up","group":"Opening","items":["Sales team discussed move-ins, tour plans, etc... (Stand-up Board)?","New Resident Move-Ins reviewed?","24 Hour Communication Log reviewed by DON?","Incident/Accident Reports reviewed?","At Risk Residents discussed and plan is in place?","Prior weeks (30 Days) Stand-up minutes & boards available and complete?","Employee recognitions shared?"]},{"key":"impressions","title":"Impressions!","group":"Standards","items":["Drive-by/external appearance is clean and well manicured?","100% employees compliant with dress code (name badge, etc...)?","Lobby is set to standard, clean, warm, pleasant odor and inviting?","Front entrance/vestibule is inviting and free of clutter? (No DME, Packages, etc.)","Concierge greets visitors warmly, authentically and timely?","Residents in lobby/common areas groomed, engaged and active?","Concierge has visitor and resident logs in use?","Concierge answers phone correctly and timely?","Dining room clean, organized and set to standard?","Concierge desk is neat, organized, free of clutter and personal items?","Laundry room clean and chemicals secured?","Activity rooms clean, decluttered and orderly?","Nurses stations clean, neat, free of clutter and personal items?","Public restrooms clean and supplied?","Offices clean and orderly?","Hallways, nooks, sitting areas clean and orderly?","Maint/Mech/Storage rooms clean and organized?","Bistro clean, orderly and supplied?","Discovery Room clean and set to standard?","Public areas 100% free of taped/tacked items?","Memory care area clean, organized and set to standard?","100% vacant units rent ready?","Employee breakroom is clean and in good condition?","Employee breakroom has labor posters?","Model room is clean and set to standard?","Employees are friendly, interactive, good morale?","Employee recognition board in use and contains current month cards?","Employees know our Mission Statement? (ask 3)"]},{"key":"admin","title":"Administrative","group":"Standards","items":["Employee compliance training completed timely and to standard?","Dementia training completed timely and to regulation?","Review last quarter's staff evaluations and increases? (3)","Last 3 hires have TB test completed timely if applicable?","Last 5 new hires have completed orientation & documentation?","LTC insurance monthly process in place and timely?","Recruitment platform effectively and timely used?","Delinquent accounts in process per protocol?","Nurse Call Response Times discussed and acceptable?","Priorities/Plans from prior month variance implemented/accomplished?","Review Prior Months financial variance analysis?","Prior month credit card activity was necessary and non-routine?","Understands AP process, role and timelines? (PO Box, ISTA, etc.)","Review Rent Roll: Free of errors, charges correct?","Last 5 MIs paperwork complete and full funds collected?","Reviewed AR aging report, collection efforts and standards?","Ancillary charges and trended revenues are accurate?","Community AP processing times within standard?"]},{"key":"engagement","title":"Resident Engagement","group":"Standards","items":["Life Enrichment program is in use and to standard?","Activities are occurring as the calendar indicates at the posted times?","Residents are engaged, not clustered with nothing to do?","LED and MCD offices are tidy, clean and organized if supplies are in their offices?","Memory Care dining experience meets standards?","Creativity boxes in use, available, and stocked? (15+)","Staff are actively engaged throughout the day with programming?","Activity/Creativity boxes are readily available for resident use?"]},{"key":"maintenance","title":"Maintenance","group":"Standards","items":["State required inspections completed/scheduled timely?","Preventative maintenance items on-track and up-to-date? (Review TELS)","Reviewed last 3 fire drills?","Reviewed last elopement drill and disaster drill?","Chemicals labeled and stored appropriately? (Locked areas)","SDS Binders updated and placed appropriately?","Reviewed vendor contracting protocol, vendor approval, etc.?","Reviewed work order completion process, tracking and outcomes?","HSK carts locked and stored when not in use?","HSK/MTA task sheets accurate, detailed and time oriented?","Touch-up painting schedule/routine in place?","Reviewed room turn timeline and procedures?","Reviewed floor maintenance expectations/contract?","Review Fleet Safety Manual and Maintenance?","Reviewed Cap-X requests, process, and forms?","Reviewed expenses, budget adherence and priorities?"]},{"key":"culinary","title":"Culinary Services","group":"Standards","items":["Dining room set-up, clean and odor free?","Tables set-up, neat, orderly and consistent per policy?","Current and accurate menus posted and followed?","Week At A Glance Menu posted/distributed?","Daily menus are in place on each table in the dining room.","Food orders taken timely, professionally and accurately?","Drink and meal service was timely, presents well and professional?","Tables turned timely, orderly and professionally?","Plate presentation was professional?","Portion sizes appropriate?","Food was appropriate temperature and tasty?","Resident's assisted when necessary/requested?","Was the planned menu actually served? (Items available?)","Special Diet binder/board/process in place and in use?","Dining room tables, table legs and chairs clean without build-up?","Table condiments & caddy clean and appropriate for meal?","Food temperature logs used and omission free? (MC & AL)","Fridge/freezer/dishwasher temp logs used and omission free?","Fridges/freezer organized correctly and free of debris?","Food dated and labeled? (fridge, freezer and storage)","Monthly food committee notes are completed?","Kitchen sanitation schedule/task sheet is accurate, in use, and effective?","Par levels sufficient for china, glasses, utensils?","Substitution log is in use and substitutions are documented appropriately?","Kitchen walls are clean and free of splatter?","Kitchen floor is clean without build-up?","Proper process for vendor contracts and vendor approvals are followed?","Equipment/supplies in good working order?"]},{"key":"salesocc","title":"Sales & Occupancy","group":"Operations Review","items":["Current occupancy vs. budget","Move-ins / move-outs MTD and YTD","Review upcoming 30-day move-in pipeline","Review leads, tours, deposits and conversions","Review reasons for lost leads","Review reasons for resident move-outs","Tour available apartments; confirm market-ready"]},{"key":"clinicalops","title":"Clinical Operations","group":"Operations Review","items":["Review falls, injuries and trends","Review hospital/ER transfers","Review medication errors/variances","Review infections/outbreaks","Review residents with significant condition changes","Confirm assessments/service plans are current","Review high-risk residents","Review outstanding clinical follow-up items"]},{"key":"staffing","title":"Staffing & Labor","group":"Operations Review","items":["Review open positions","Review staffing schedule vs. census/acuity","Review overtime and agency usage","Review call-offs and attendance trends","Review turnover and retention","Confirm required training is current","Meet with department heads"]},{"key":"resexp","title":"Resident Experience","group":"Operations Review","items":["Speak with residents during visit","Observe staff/resident interactions","Review resident/family complaints","Review satisfaction results and action plans","Observe activities and resident engagement","Review dining experience during a meal period"]},{"key":"dining","title":"Dining","group":"Operations Review","items":["Observe food quality, presentation and temperature","Inspect kitchen cleanliness and sanitation","Review food cost vs. budget","Verify menus are being followed","Review dining complaints and follow-up"]},{"key":"physplant","title":"Maintenance / Physical Plant","group":"Operations Review","items":["Complete exterior walk-around","Tour common areas and resident corridors","Review cleanliness, odors and overall appearance","Inspect vacant apartments","Review open work orders","Review average time to close work orders","Review preventive maintenance completion","Review outstanding capital needs","Check life-safety equipment/inspection status"]},{"key":"housekeeping","title":"Housekeeping","group":"Operations Review","items":["Inspect common areas and restrooms","Inspect sample resident apartments","Review housekeeping staffing and schedules","Review deep-clean/floor-care schedule"]},{"key":"regulatory","title":"Regulatory / Compliance","group":"Operations Review","items":["Review open survey deficiencies/POCs","Review reportable incidents","Review licensing/inspection requirements","Verify required postings/documentation","Review outstanding compliance issues"]},{"key":"leadership","title":"Leadership","group":"Operations Review","items":["Review ED's top 3 priorities","Review department-head performance","Review outstanding action plans","Identify leadership/accountability concerns","Recognize strong performance/wins"]}];
+  D.VISIT_FINANCIAL = [{"key":"fin_previsit","title":"Pre-Visit Financial Review","type":"table","hint":"RDO + ED complete together \u2014 accurate, current numbers","rows":["MTD / YTD NOI vs. budget","Revenue variances (vs. budget)","Major expense variances","Labor vs. budget \u2014 overtime & agency","Controllable expenses","NOI improvement actions in progress"],"items":null},{"key":"fin_scan","title":"Pre-Call Scan","type":"scan","hint":"walk in already knowing","rows":null,"items":["Pulled live SkyPoint dashboards","Pulled census & move-in/out trend","Reviewed labor hours, OT %, agency use","Checked last night's incidents / falls","Looked at budget vs. actual (earnings)","Reviewed open AR / collections","Scanned complaints & work orders","Confirmed survey-readiness / open POC items","Reviewed each department's status","Re-read last call's action items"]},{"key":"fin_numbers","title":"The Numbers","type":"metrics","hint":"know normal so the abnormal jumps out","rows":["Occupancy / census %","Move-ins / move-outs (net)","Labor hours & overtime %","Agency usage ($ / hrs)","Earnings vs. budget","AR / collections aging","Incidents / falls / transfers","Complaints / grievances","Open work orders / life-safety"],"items":null},{"key":"fin_depts","title":"Department-by-Department Review","type":"table","hint":"the department line \u2014 direction down, accountability up","rows":["Clinical","Dining","Life Enrichment","Marketing","Maintenance","Memory Care"],"items":null},{"key":"fin_followups","title":"Follow-Ups From Last Call","type":"entry","hint":"close the loop \u2014 accountability is the point","rows":null,"items":null},{"key":"fin_wins","title":"Wins to Recognize","type":"note","hint":"","rows":null,"items":null},{"key":"fin_issues","title":"Issues / Risks to Raise","type":"note","hint":"","rows":null,"items":null},{"key":"fin_decisions","title":"Decisions Needed Today","type":"note","hint":"","rows":null,"items":null},{"key":"fin_coaching","title":"Coaching Focus","type":"note","hint":"","rows":null,"items":null},{"key":"fin_risk","title":"Risk & Watch List","type":"entry","hint":"not a fire yet \u2014 catch it before it is","rows":null,"items":null},{"key":"fin_actions","title":"Action Items Out of This Call","type":"entry","hint":"these flow into the shared Action Plan","rows":null,"items":null},{"key":"fin_escalate","title":"Escalate to VP of Operations","type":"note","hint":"surface early \u2014 bad news travels up or it festers","rows":null,"items":null}];
 })();
