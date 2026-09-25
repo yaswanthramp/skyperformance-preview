@@ -50,15 +50,21 @@
       return true;
     });
     var mine = all.filter(function (a) { return a.owner === me.id; });
-    var fromVisit = mine.filter(function (a) { return a.fromKind === 'visit' && a.status !== 'Closed'; });
+    function openFrom(kind) { return mine.filter(function (a) { return a.fromKind === kind && a.status !== 'Closed'; }); }
+    var fromVisit = openFrom('visit'), fromPip = openFrom('pip');
+    /* An item can come from a plan without being the subject's own action plan:
+       HR gets work off a plan too. Only the employee on the plan sees that line. */
+    var myPlanActions = fromPip.filter(function (a) { var x = D.pip(a.from); return x && x.emp === me.id; });
 
     var body =
-      (fromVisit.length ? APP.callout('<b>' + fromVisit.length + ' of these came from a site visit.</b> ' + esc(P(fromVisit[0].by).name) + ' assigned them during the walk-through, so they arrive here with an owner and a date already on them.', 'is-info', 'building-2') : '') +
+      (myPlanActions.length ? APP.callout('<b>' + myPlanActions.length + ' of these are the action plan on your ' + esc(APP.term('pipShort')) + '.</b> They are the same items as on the plan, so closing one here ticks it there.', 'is-warning', 'clipboard-check') : '') +
+      (fromVisit.length ? APP.callout('<b>' + fromVisit.length + ' of these came from a ' + esc(APP.term('visit').toLowerCase()) + '.</b> ' + esc(P(fromVisit[0].by).name) + ' assigned them during the walk-through, so they arrive here with an owner and a date already on them.', 'is-info', 'building-2') : '') +
       APP.hint('One list. Anything anyone assigns you, from a conversation, a visit, a plan or an evaluation, shows up here.', 'list-checks') +
       APP.glance([
         [mine.filter(function (a) { return a.status !== 'Closed'; }).length, 'Open for you'],
         [mine.filter(function (a) { return a.status === 'Overdue'; }).length, 'Overdue', mine.some(function (a) { return a.status === 'Overdue'; }) ? 'is-bad' : 'is-good'],
-        [fromVisit.length, 'From a site visit', fromVisit.length ? 'is-warn' : ''],
+        [fromPip.length, 'From a plan', fromPip.length ? 'is-warn' : ''],
+        [fromVisit.length, 'From a ' + APP.term('visit').toLowerCase(), fromVisit.length ? 'is-warn' : ''],
         [mine.filter(function (a) { return a.status === 'Closed'; }).length, 'Closed', 'is-good']
       ]) +
       '<section class="card flush-card">' +

@@ -236,6 +236,7 @@
     ];
     if (APP.isHR()) return [
       ['home', 'Home', 'house', 'Home'],
+      ['todos', 'To-dos', 'list-checks', 'To-dos'],
       ['pips', APP.plural(t.pipShort), 'clipboard-check', APP.plural(t.pipShort)],
       ['evaluations', 'Evaluations', 'clipboard-list', 'Evals'],
       ['coaching', t.coaching, 'message-square-text', 'Coaching'],
