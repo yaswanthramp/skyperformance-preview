@@ -426,6 +426,10 @@
   /* ---- documented conversations, spread across communities and types ---- */
   D.RECORDS.push(
     /* Cedar Hollow, clinical (Priya) */
+    C({ id: 'CR-20790', type: 'CT-DISC', emp: 'dana', by: 'priya', on: 'Tue 17 Feb 2026', at: '08:15', site: 'CM-CH', dept: 'Clinical',
+      topic: 'Unplanned absence, third in sixty days',
+      text: 'Third unplanned absence since December, twice without calling ahead. Went through the attendance policy and the effect on the floor.',
+      ack: 'Tue 17 Feb 2026 16:40', attachments: [] }),
     C({ id: 'CR-20938', type: 'CT-POL', emp: 'dana', by: 'priya', on: 'Wed 16 Sep 2026', at: '13:10', site: 'CM-CH', dept: 'Clinical',
       topic: 'Break returns running over',
       text: 'Back on the floor fifteen minutes late from break twice this week. Went through the break policy and the cover arrangement.',
@@ -584,6 +588,27 @@
 
   /* ---- more improvement plans, at every level and across communities ---- */
   D.PIPS.push(
+    { id: 'PIP-405', emp: 'dana', by: 'priya', level: 'first', status: 'Active', site: 'CM-CH',
+      offenses: ['Attendance Issues'], offenseOther: null, opened: 'Mon 9 Mar 2026', start: 'Mon 16 Mar 2026', end: 'Tue 16 Mar 2027',
+      reason: 'Due to ongoing concerns related to attendance, you are being placed on a First Counseling Performance Improvement Plan. Three unplanned absences in sixty days, twice without calling ahead.',
+      evidence: ['CR-20790'],
+      actions: [
+        { t: 'No unplanned absence for the next ninety days', due: 'Mon 15 Jun 2026', done: true, aid: 'AI-8820' },
+        { t: 'Call the charge nurse at least two hours before shift if unable to attend', due: 'Ongoing', done: false, aid: 'AI-8821' },
+        { t: 'Meet the Director of Nursing on the first Friday of each month', due: 'Ongoing, reviewed monthly', done: false, aid: 'AI-8822' }],
+      initial: { on: 'Mon 16 Mar 2026', note: 'Plan reviewed with Dana. She raised a bus timetable change; the shift start was moved by thirty minutes.' },
+      reviews: [{ on: 'Fri 17 Apr 2026', note: 'No occurrences since the plan started. The later start is working.' },
+                { on: 'Fri 19 Jun 2026', note: 'Ninety days clear. Attendance is no longer the concern.' }],
+      resolution: null, employeeComments: 'The timetable change was the problem and the later start has fixed it.',
+      approvals: [
+        { who: 'priya', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Mon 9 Mar 2026 09:20' },
+        { who: 'curtis', role: 'One level above, Executive Director', state: 'Approved', on: 'Mon 9 Mar 2026 15:00' },
+        { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 10 Mar 2026 10:30' }],
+      audit: [{ on: 'Mon 9 Mar 2026 09:05', who: 'priya', what: 'Plan opened at First Counseling. One coaching record attached automatically.' },
+              { on: 'Tue 10 Mar 2026 10:30', who: 'grant', what: 'Approved by HR.' },
+              { on: 'Mon 16 Mar 2026 08:00', who: 'priya', what: 'Activated after the meeting with the employee. Signatures captured.' },
+              { on: 'Mon 16 Mar 2026 08:00', who: 'priya', what: '3 action items sent to Dana Whitfield\u2019s to-do list.' },
+              { on: 'Fri 19 Jun 2026 16:10', who: 'priya', what: 'Second review recorded.' }] },
     { id: 'PIP-418', emp: 'kai', by: 'simone', level: 'first', status: 'Active', site: 'CM-MC',
       offenses: ['Attendance Issues'], offenseOther: null, opened: 'Mon 14 Sep 2026', start: 'Fri 18 Sep 2026', end: 'Sat 18 Sep 2027',
       reason: 'Arrived after handover on three occasions in two weeks. A First Counseling plan is in place to establish reliable attendance.',
@@ -642,6 +667,15 @@
   /* ---- action items, so every role has a list of its own ---- */
   D.ACTIONS.push(
     /* from the new plans */
+    { id: 'AI-8820', t: 'No unplanned absence for the next ninety days', owner: 'dana', by: 'priya',
+      from: 'PIP-405', fromKind: 'pip', due: 'Mon 15 Jun 2026', status: 'Closed', site: 'CM-CH', closedOn: 'Mon 15 Jun 2026',
+      notes: [{ on: 'Mon 15 Jun', by: 'priya', t: 'Ninety days clear. Ticked off on the plan at the June review.' }] },
+    { id: 'AI-8821', t: 'Call the charge nurse at least two hours before shift if unable to attend', owner: 'dana', by: 'priya',
+      from: 'PIP-405', fromKind: 'pip', due: 'Ongoing', status: 'Open', site: 'CM-CH',
+      notes: [{ on: 'Tue 4 Aug', by: 'dana', t: 'Called ahead on the one occasion I could not attend.' }] },
+    { id: 'AI-8822', t: 'Meet the Director of Nursing on the first Friday of each month', owner: 'dana', by: 'priya',
+      from: 'PIP-405', fromKind: 'pip', due: 'Ongoing, reviewed monthly', status: 'Open', site: 'CM-CH',
+      notes: [{ on: 'Fri 4 Sep', by: 'priya', t: 'September check-in done. Attendance holding.' }] },
     { id: 'AI-8896', t: 'Arrive and be ready on the floor before handover for every scheduled shift', owner: 'kai', by: 'simone',
       from: 'PIP-418', fromKind: 'pip', due: 'Ongoing, reviewed weekly', status: 'Open', site: 'CM-MC', notes: [] },
     { id: 'AI-8897', t: 'Call the Director of Nursing at least two hours ahead if unable to attend', owner: 'kai', by: 'simone',

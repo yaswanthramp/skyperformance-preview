@@ -157,7 +157,8 @@
           '<td data-label="Action item"><span class="cell-strong">' + esc(a.t) + '</span></td>' +
           '<td data-label="Due date">' + esc(a.due) + '</td>' +
           '<td data-label="On the to-do list">' + (todo
-            ? '<button class="rowlink" data-act="open-action" data-id="' + todo.id + '">' + esc(todo.id) + '</button><span class="cell-sub">' + esc(todo.status) + '</span>'
+            ? '<button class="rowlink" data-act="open-action" data-id="' + todo.id + '">' + esc(todo.id) + '</button><span class="cell-sub">' +
+              esc(todo.status === 'Closed' && !a.done ? 'Closed with the plan' : todo.status) + '</span>'
             : '<span class="mini-note">' + (x.status === 'Active' ? 'Not sent' : 'Sent on activation') + '</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div>' +
       (x.status === 'Active' && x.actions.some(function (a) { return !a.aid; }) && owner
