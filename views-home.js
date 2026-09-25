@@ -150,7 +150,7 @@
     var pips = D.PIPS, byLevel = {};
     pips.forEach(function (x) { var n = D.pipLevel(x.level).name; byLevel[n] = (byLevel[n] || 0) + 1; });
     var noAck = D.RECORDS.filter(function (r) { return r.emp && !r.ack; }).length;
-    return (approvals.length ? APP.callout('<b>' + approvals.length + ' ' + APP.term('pipShort') + ' in your queue.</b> <a href="#/pips">Open it</a>', 'is-warning', 'gavel') : '') +
+    return (approvals.length ? APP.callout('<b>' + approvals.length + ' ' + (approvals.length === 1 ? APP.term('pipShort') : APP.terms('pipShort')) + ' in your queue.</b> <a href="#/pips">Open ' + (approvals.length === 1 ? 'it' : 'the queue') + '</a>', 'is-warning', 'gavel') : '') +
       APP.callout('<b>The retention period for terminated files is still unset.</b> Until it is, nothing is deleted. <a href="#/settings/retention">Set it</a>', 'is-warning', 'triangle-alert') +
       '<div class="kpi-row">' +
       stat('In your queue', String(approvals.length), 'gavel', approvals.length ? 'Waiting on HR review' : 'Nothing waiting', approvals.length ? 'is-down' : '', '#/pips') +

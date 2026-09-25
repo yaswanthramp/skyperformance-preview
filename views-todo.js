@@ -8,9 +8,10 @@
     if (a.fromKind === 'visit') return '<button class="rowlink" data-act="goto" data-href="#/visits/' + a.from + '/plan">' + esc(a.from) + '</button>';
     if (a.fromKind === 'pip') return '<button class="rowlink" data-act="goto" data-href="#/pips/' + a.from + '">' + esc(a.from) + '</button>';
     if (a.fromKind === 'eval') return '<button class="rowlink" data-act="goto" data-href="#/evaluations/' + a.from + '">' + esc(a.from) + '</button>';
+    if (a.fromKind === 'coaching') return '<button class="rowlink" data-act="open-record" data-id="' + a.from + '">' + esc(a.from) + '</button>';
     return esc(a.from);
   }
-  function sourceLabel(k) { return k === 'visit' ? 'Site visit' : k === 'pip' ? 'Improvement plan' : k === 'eval' ? 'Evaluation' : 'Coaching'; }
+  function sourceLabel(k) { return k === 'visit' ? APP.term('visit') : k === 'pip' ? APP.term('pip') : k === 'eval' ? 'Evaluation' : APP.term('coaching'); }
 
   function actionRow(a) {
     var late = a.status === 'Overdue';
@@ -53,7 +54,7 @@
 
     var body =
       (fromVisit.length ? APP.callout('<b>' + fromVisit.length + ' of these came from a site visit.</b> ' + esc(P(fromVisit[0].by).name) + ' assigned them during the walk-through, so they arrive here with an owner and a date already on them.', 'is-info', 'building-2') : '') +
-      APP.hint('One list. Anything anyone assigns you, from a visit, a plan or an evaluation, shows up here.', 'list-checks') +
+      APP.hint('One list. Anything anyone assigns you, from a conversation, a visit, a plan or an evaluation, shows up here.', 'list-checks') +
       APP.glance([
         [mine.filter(function (a) { return a.status !== 'Closed'; }).length, 'Open for you'],
         [mine.filter(function (a) { return a.status === 'Overdue'; }).length, 'Overdue', mine.some(function (a) { return a.status === 'Overdue'; }) ? 'is-bad' : 'is-good'],
