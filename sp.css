@@ -574,3 +574,24 @@ details.collapse.is-quiet > summary:hover { color: var(--fg-high); }
   background-image: none;
   color: var(--gray-1);
 }
+
+/* The SMART framework block, lifted from the paper improvement plan. */
+.smart-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); margin-bottom: var(--space-4); }
+.smart-item { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2); border-radius: var(--radius-2); background: var(--gray-2); }
+.smart-letter { flex: none; width: 20px; height: 20px; border-radius: var(--radius-1); background: var(--accent-9); color: var(--accent-contrast);
+  font-size: var(--fs-1); font-weight: var(--weight-bold); display: grid; place-items: center; }
+.smart-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.smart-name { font-size: var(--fs-1); font-weight: var(--weight-medium); color: var(--fg-high); }
+.smart-def { font-size: 11px; line-height: 1.35; color: var(--fg-low); }
+@media (max-width: 900px) { .smart-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .smart-row { grid-template-columns: 1fr; } }
+
+/* Section 11 of the form: the employee's own words, kept with the plan. */
+.emp-comment { padding: var(--space-3); border-radius: var(--radius-3); background: var(--gray-2);
+  border-left: 3px solid var(--accent-9); font-size: var(--fs-2); color: var(--fg-high); }
+.emp-comment-meta { display: block; margin-top: var(--space-2); font-size: var(--fs-1); color: var(--fg-low); }
+
+/* The row number on the action plan is a paper-form artefact. In the stacked
+   mobile table it reads as data, so drop it there. */
+@media (max-width: 860px) { .table td[data-label="#"], .table th:nth-child(2):empty { display: none; } }
+@media (max-width: 860px) { .table th.num-col { display: none; } }

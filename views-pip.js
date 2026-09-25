@@ -49,7 +49,7 @@
         rows.map(function (x) {
           return { cells: [
             APP.personLine(x.emp, esc(D.siteName(x.site)), 28),
-            levelBadge(x.level), esc(x.offense),
+            levelBadge(x.level), esc(D.offenseText(x)),
             esc(x.opened.replace(/^\w+ /, '')), esc((x.end || '').replace(/^\w+ /, '') || '—'),
             statusBadge(x),
             x.status === 'Pending approval' && x.next ? esc(P(x.next).name.split(' ')[0]) : '—',
@@ -57,6 +57,44 @@
           ] };
         }), { empty: 'Nothing here.' }) + '</section>' +
       APP.why('How a ' + APP.term('pipShort') + ' ends', '<p>Successfully completed, extended, or advanced to the next level. The level of corrective action is at management discretion and depends on the severity. Advancing past a Final Written Counseling opens the termination section of the same form.</p>');
+  }
+
+  /* The action plan on the paper form is a list of promises. Putting each one on
+     the employee's own to-do list is what turns it into work they can see. */
+  var AID = 8900;
+  function raiseTodo(x, a) {
+    if (a.aid) return null;
+    var id = 'AI-' + (AID++);
+    D.ACTIONS.unshift({ id: id, t: a.t, owner: x.emp, by: x.by, from: x.id, fromKind: 'pip',
+      due: a.due, status: a.done ? 'Closed' : 'Open', site: x.site, notes: [],
+      closedOn: a.done ? D.TODAY : undefined });
+    a.aid = id;
+    return id;
+  }
+  function syncTodo(a, done) {
+    var t = a.aid ? D.action(a.aid) : null;
+    if (!t) return;
+    if (done) { t.status = 'Closed'; t.closedOn = D.TODAY; }
+    else { t.status = 'Open'; t.closedOn = undefined; }
+  }
+  APP.pipSyncFromTodo = function (todo) {
+    var x = D.pip(todo.from); if (!x) return;
+    x.actions.forEach(function (a) { if (a.aid === todo.id) a.done = todo.status === 'Closed'; });
+  };
+
+  var SMART = [
+    ['S', 'Specific', 'State what will be done; use action words.'],
+    ['M', 'Measurable', 'Provide a way to evaluate; use metrics or data targets.'],
+    ['A', 'Attainable', 'Within the scope of the job function; possible to accomplish.'],
+    ['R', 'Relevant', 'Makes sense within the job function; improves the business.'],
+    ['T', 'Time-oriented', 'State when it will be done; be specific on date or timeframe.']
+  ];
+  function smartLegend() {
+    return '<div class="smart-row">' + SMART.map(function (m) {
+      return '<div class="smart-item"><span class="smart-letter">' + m[0] + '</span>' +
+        '<span class="smart-text"><span class="smart-name">' + m[1] + '</span>' +
+        '<span class="smart-def">' + esc(m[2]) + '</span></span></div>';
+    }).join('') + '</div>';
   }
 
   /* ---------------- detail: the form itself ---------------- */
@@ -88,7 +126,7 @@
         ['Employee', APP.personLine(e, esc(e.title), 28, false)],
         ['Supervisor', APP.personLine(x.by, false, 28, false)],
         ['Level of discipline', levelBadge(x.level)],
-        ['Type of offense', esc(x.offense)],
+        ['Type of offense', esc(D.offenseText(x))],
         ['Plan start date', esc(x.start)],
         ['Plan end date', esc(x.end) + ' <span class="mini-note">(' + D.PIP_ACTIVE_MONTHS + ' months)</span>'],
         ['Status', statusBadge(x)]
@@ -106,15 +144,29 @@
         : APP.callout('No previous counselings attached. Anything above a first counseling is hard to defend without them.', 'is-warning', 'triangle-alert')) +
       '</section>' +
 
-      '<section class="card">' + APP.panelHead('Required actions', 'All action items follow the SMART framework.',
-        owner && x.status === 'Active' ? APP.btn('Add action', 'btn-surface', 'plus', 'data-act="pip-add-action" data-id="' + x.id + '"', 'is-sm') : '') +
-      '<div class="table-wrap"><table class="table"><thead><tr><th style="width:56px"></th><th>Action</th><th style="width:26%">Due date</th></tr></thead><tbody>' +
+      '<section class="card">' + APP.panelHead('Action plan', 'Every action item follows the SMART framework and goes on ' + esc(e.name.split(' ')[0]) + '\u2019s to-do list.',
+        owner && x.status === 'Active' && x.actions.length < D.PIP_MAX_ACTIONS
+          ? APP.btn('Add action', 'btn-surface', 'plus', 'data-act="pip-add-action" data-id="' + x.id + '"', 'is-sm') : '') +
+      smartLegend() +
+      '<div class="table-wrap"><table class="table"><thead><tr><th style="width:44px"></th><th style="width:34px">#</th><th>Action item (SMART)</th><th style="width:19%">Due date</th><th style="width:24%">On the to-do list</th></tr></thead><tbody>' +
       x.actions.map(function (a, i) {
-        return '<tr><td data-label=""><button class="tick' + (a.done ? ' is-on' : '') + '" data-act="pip-tick" data-id="' + x.id + '" data-i="' + i + '" aria-pressed="' + a.done + '">' + (a.done ? ic('check', 14) : '') + '</button></td>' +
-          '<td data-label="Action"><span class="cell-strong">' + esc(a.t) + '</span></td>' +
-          '<td data-label="Due date">' + esc(a.due) + '</td></tr>';
+        var todo = a.aid ? D.action(a.aid) : null;
+        return '<tr><td data-label=""><button class="tick' + (a.done ? ' is-on' : '') + '" data-act="pip-tick" data-id="' + x.id + '" data-i="' + i + '" aria-pressed="' + a.done + '"' +
+          (x.status === 'Pending approval' ? ' disabled' : '') + '>' + (a.done ? ic('check', 14) : '') + '</button></td>' +
+          '<td data-label="#"><span class="cell-id">' + (i + 1) + '</span></td>' +
+          '<td data-label="Action item"><span class="cell-strong">' + esc(a.t) + '</span></td>' +
+          '<td data-label="Due date">' + esc(a.due) + '</td>' +
+          '<td data-label="On the to-do list">' + (todo
+            ? '<button class="rowlink" data-act="open-action" data-id="' + todo.id + '">' + esc(todo.id) + '</button><span class="cell-sub">' + esc(todo.status) + '</span>'
+            : '<span class="mini-note">' + (x.status === 'Active' ? 'Not sent' : 'Sent on activation') + '</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div>' +
-      APP.hint('Specific, measurable, attainable, relevant, time oriented.', 'target') +
+      (x.status === 'Active' && x.actions.some(function (a) { return !a.aid; }) && owner
+        ? '<div class="row-gap" style="margin-top:var(--space-3)">' +
+          APP.btn('Send ' + x.actions.filter(function (a) { return !a.aid; }).length + ' to ' + esc(e.name.split(' ')[0]) + '\u2019s to-do list', 'btn-solid', 'send', 'data-act="pip-send-todos" data-id="' + x.id + '"', 'is-sm') + '</div>'
+        : '') +
+      (x.status === 'Pending approval'
+        ? APP.hint('Nothing goes on ' + esc(e.name.split(' ')[0]) + '\u2019s to-do list until the plan is approved and activated.', 'lock')
+        : APP.hint('Ticking an action here closes the to-do. Closing the to-do ticks it here. One thing, two places.', 'list-checks')) +
       '</section>' +
 
       '<section class="card">' + APP.panelHead('Meetings and follow-up') +
@@ -135,6 +187,13 @@
       (x.resolution ? APP.badge(x.resolution.next, 'is-info') : APP.badge('Open', 'is-neutral')) + '</div>' +
       '<span class="tl-note">' + (x.resolution ? esc(x.resolution.note) : 'Completed, extended, or advanced to the next level.') + '</span></div></div>' +
       '</div></section>' +
+
+      (x.status !== 'Pending approval' ? '<section class="card">' + APP.panelHead('Employee comments', 'Section 11 of the form. ' + esc(e.name.split(' ')[0]) + '\u2019s own words, kept with the plan.',
+        isEmp && x.status === 'Active' ? APP.btn(x.employeeComments ? 'Edit' : 'Add a comment', 'btn-surface', 'pen-line', 'data-act="pip-comment" data-id="' + x.id + '"', 'is-sm') : '') +
+        (x.employeeComments
+          ? '<div class="emp-comment">' + esc(x.employeeComments) + '<span class="emp-comment-meta">' + esc(e.name) + '</span></div>'
+          : APP.hint(isEmp ? 'You can add a comment at any time while the plan is active. It is never removed.' : 'Nothing added. The employee can comment at any time while the plan runs.', 'message-square-text')) +
+        '</section>' : '') +
 
       (x.termination ? '<section class="card">' + APP.panelHead('Termination details') +
         APP.dataList([
@@ -191,7 +250,7 @@
     return APP.page({
       crumbs: [['Home', '#/home'], [APP.terms('pipShort'), '#/pips'], [x.id, '#']],
       title: D.pipLevel(x.level).name + ' · ' + e.name,
-      desc: x.offense + ' · ' + D.siteName(x.site) + ' · opened ' + x.opened,
+      desc: D.offenseText(x) + ' · ' + D.siteName(x.site) + ' · opened ' + x.opened,
       action: statusBadge(x), body: body
     });
   }
@@ -228,8 +287,16 @@
       title: 'Start a ' + APP.term('pipShort'), sub: 'It goes for approval before anything reaches ' + e.name.split(' ')[0] + '.', size: 'is-wide',
       body: '<div class="form-grid">' +
         APP.field('Employee', APP.dd('pip-emp', APP.people().filter(function (p) { return p.id !== APP.me().id; }).map(function (p) { return [p.id, p.name + ', ' + p.title]; }), emp, 'dd-block'), null, true) +
-        APP.field('Type of offense', APP.dd('pip-offense', D.OFFENSE_TYPES, S.f.pipOffense, 'dd-block'), null, true) +
         '</div>' +
+        '<div class="sf-block"><span class="field-label">Type of offense<span class="req">*</span><span class="field-hint">Select all that apply.</span></span>' +
+        '<div class="pick-list">' + D.OFFENSE_TYPES.map(function (o) {
+          var on = (S.f.pipOffenses || []).indexOf(o) >= 0;
+          return '<button class="pick-row' + (on ? ' is-on' : '') + '" data-act="pip-offense-toggle" data-o="' + esc(o) + '">' +
+            '<span class="tick' + (on ? ' is-on' : '') + '">' + (on ? ic('check', 13) : '') + '</span><span>' + esc(o) + '</span></button>';
+        }).join('') + '</div>' +
+        ((S.f.pipOffenses || []).indexOf('Other') >= 0
+          ? '<input class="input" data-input="pip-offense-other" placeholder="Describe the other offense" value="' + esc(S.f.pipOffenseOther || '') + '" style="margin-top:var(--space-2)">'
+          : '') + '</div>' +
         '<div class="sf-block"><span class="field-label">Level of discipline<span class="req">*</span></span>' +
         '<div class="sf-radios">' + D.PIP_LEVELS.map(function (l) {
           var on = l.key === S.f.pipLevel;
@@ -249,7 +316,13 @@
   }
   A['pip-level'] = function (el) { S.f.pipLevel = el.getAttribute('data-k'); APP.closeOverlay(); pipForm(); };
   APP.DD['pip-emp'] = function (v) { S.f.pipEmp = v; APP.closeOverlay(); pipForm(); };
-  APP.DD['pip-offense'] = function (v) { S.f.pipOffense = v; };
+  A['pip-offense-toggle'] = function (el) {
+    var o = el.getAttribute('data-o'), list = S.f.pipOffenses || [];
+    var i = list.indexOf(o);
+    if (i >= 0) list.splice(i, 1); else list.push(o);
+    S.f.pipOffenses = list; APP.closeOverlay(); pipForm();
+  };
+  APP.INPUT['pip-offense-other'] = function (el) { S.f.pipOffenseOther = el.value; };
   APP.INPUT['pip-reason'] = function (el) { S.f.pipReason = el.value; };
   APP.INPUT['pip-action'] = function (el) { S.f.pipAction = el.value; };
   A['pip-create'] = function () {
@@ -258,19 +331,20 @@
     var id = 'PIP-' + (420 + Math.floor(Math.random() * 60));
     var chain = D.path(emp).slice(0, -1).reverse().filter(function (p) { return p.id !== me.id; }).slice(0, 1);
     D.PIPS.unshift({ id: id, emp: emp, by: me.id, level: lvl.key, status: 'Pending approval', site: e.site,
-      offense: S.f.pipOffense || D.OFFENSE_TYPES[0], opened: D.TODAY, start: 'Mon 21 Sep 2026', end: 'Mon 21 Sep 2027',
+      offenses: (S.f.pipOffenses && S.f.pipOffenses.length) ? S.f.pipOffenses.slice() : [D.OFFENSE_TYPES[0]],
+      offenseOther: S.f.pipOffenseOther || null, opened: D.TODAY, start: 'Mon 21 Sep 2026', end: 'Mon 21 Sep 2027',
       reason: S.f.pipReason || 'Due to ongoing concerns, you are being placed on a ' + lvl.name + ' Performance Improvement Plan.',
       evidence: D.recordsFor(emp).filter(function (r) { return r.type === 'CT-DISC' || r.type === 'CT-POL'; }).map(function (r) { return r.id; }),
-      actions: [{ t: S.f.pipAction || 'Meet the standard set out above', due: S.f['pip-due'] || 'Fri 16 Oct 2026', done: false }],
+      actions: [{ t: S.f.pipAction || 'Meet the standard set out above', due: S.f['pip-due'] || 'Fri 16 Oct 2026', done: false, aid: null }],
       initial: { on: 'Mon 21 Sep 2026', note: null },
       reviews: [{ on: 'Fri 16 Oct 2026', note: null }, { on: 'Fri 20 Nov 2026', note: null }],
-      resolution: null, next: chain[0] ? chain[0].id : 'grant',
+      resolution: null, employeeComments: null, next: chain[0] ? chain[0].id : 'grant',
       approvals: [{ who: me.id, role: 'Initiator, ' + me.title, state: 'Submitted', on: D.TODAY }]
         .concat(chain.map(function (p) { return { who: p.id, role: 'One level above, ' + p.title, state: 'Waiting', on: null }; }))
         .concat([{ who: 'grant', role: 'HR review', state: 'Waiting', on: null }]),
       audit: [{ on: D.TODAY, who: me.id, what: 'Plan opened at ' + lvl.name + '.' },
               { on: D.TODAY, who: me.id, what: 'Submitted for approval and review.' }] });
-    S.f.pipReason = ''; S.f.pipAction = '';
+    S.f.pipReason = ''; S.f.pipAction = ''; S.f.pipOffenses = null; S.f.pipOffenseOther = '';
     APP.closeAll(); APP.go('#/pips/' + id);
     APP.toast('Submitted', id + ' is with the approval chain. Nothing reaches ' + e.name.split(' ')[0] + ' yet.');
   };
@@ -313,13 +387,26 @@
   A['pip-activate-do'] = function (el) {
     var x = D.pip(el.getAttribute('data-id'));
     x.status = 'Active'; x.initial.on = D.TODAY; x.initial.note = S.f.pipInitial || 'Plan reviewed with the employee.';
+    var n = 0;
+    x.actions.forEach(function (a) { if (raiseTodo(x, a)) n++; });
     x.audit.push({ on: D.TODAY, who: APP.me().id, what: 'Activated after the meeting with the employee. Signatures captured.' });
+    if (n) x.audit.push({ on: D.TODAY, who: APP.me().id, what: n + ' action item' + (n === 1 ? '' : 's') + ' sent to ' + P(x.emp).name + '\u2019s to-do list.' });
     S.f.pipInitial = '';
-    APP.closeAll(); APP.rerender(); APP.toast('Active', x.id + ' runs to ' + x.end + '.');
+    APP.closeAll(); APP.rerender();
+    APP.toast('Active', x.id + ' runs to ' + x.end + '. ' + n + ' action item' + (n === 1 ? ' is' : 's are') + ' now on ' + P(x.emp).name.split(' ')[0] + '\u2019s to-do list.');
+  };
+  A['pip-send-todos'] = function (el) {
+    var x = D.pip(el.getAttribute('data-id')), n = 0;
+    x.actions.forEach(function (a) { if (raiseTodo(x, a)) n++; });
+    x.audit.push({ on: D.TODAY, who: APP.me().id, what: n + ' action item' + (n === 1 ? '' : 's') + ' sent to ' + P(x.emp).name + '\u2019s to-do list.' });
+    APP.rerender();
+    APP.toast(n + ' sent', 'On ' + P(x.emp).name.split(' ')[0] + '\u2019s to-do list now. Switch to the ' + APP.roleLabel('employee') + ' to see them.');
   };
   A['pip-tick'] = function (el) {
-    var x = D.pip(el.getAttribute('data-id')), i = +el.getAttribute('data-i');
-    x.actions[i].done = !x.actions[i].done; APP.rerender();
+    var x = D.pip(el.getAttribute('data-id')), i = +el.getAttribute('data-i'), a = x.actions[i];
+    a.done = !a.done; syncTodo(a, a.done);
+    APP.rerender();
+    if (a.aid) APP.toast(a.done ? 'Met' : 'Reopened', a.aid + ' on ' + P(x.emp).name.split(' ')[0] + '\u2019s list is ' + (a.done ? 'closed' : 'open') + ' too.', 'info');
   };
   A['pip-add-action'] = function (el) {
     var id = el.getAttribute('data-id');
@@ -330,9 +417,31 @@
   };
   A['pip-action-save'] = function (el) {
     var x = D.pip(el.getAttribute('data-id'));
-    x.actions.push({ t: S.f.pipAction || 'Meet the standard set out above', due: S.f['pip-due2'] || 'Fri 16 Oct 2026', done: false });
+    var a = { t: S.f.pipAction || 'Meet the standard set out above', due: S.f['pip-due2'] || 'Fri 16 Oct 2026', done: false, aid: null };
+    x.actions.push(a);
+    if (x.status === 'Active') raiseTodo(x, a);
     S.f.pipAction = '';
-    APP.closeAll(); APP.rerender(); APP.toast('Action added', 'It also appears on the employee to-do list.');
+    APP.closeAll(); APP.rerender();
+    APP.toast('Action added', x.status === 'Active'
+      ? a.aid + ' is on ' + P(x.emp).name.split(' ')[0] + '\u2019s to-do list, due ' + a.due + '.'
+      : 'It goes on the to-do list when the plan is activated.');
+  };
+  A['pip-comment'] = function (el) {
+    var id = el.getAttribute('data-id'), x = D.pip(id);
+    S.f.pipComment = x.employeeComments || '';
+    APP.dialog({ title: 'Your comments', sub: 'Kept with the plan, and never removed.',
+      body: APP.callout('This is section 11 of the form. Write whatever you want recorded, including if you disagree with the plan.', 'is-info', 'message-square-text') +
+        APP.field('Comments', '<textarea class="textarea is-tall" data-input="pip-comment">' + esc(x.employeeComments || '') + '</textarea>', null, true),
+      footer: APP.btn('Cancel', 'btn-surface', null, 'data-act="close-overlay"') +
+        APP.btn('Save', 'btn-solid', 'check', 'data-act="pip-comment-save" data-id="' + id + '"') });
+  };
+  APP.INPUT['pip-comment'] = function (el) { S.f.pipComment = el.value; };
+  A['pip-comment-save'] = function (el) {
+    var x = D.pip(el.getAttribute('data-id'));
+    x.employeeComments = S.f.pipComment || null;
+    x.audit.push({ on: D.TODAY, who: APP.me().id, what: 'Employee comments added to the plan.' });
+    S.f.pipComment = '';
+    APP.closeAll(); APP.rerender(); APP.toast('Saved', 'Your comments are on the plan for everyone who reads it.');
   };
   A['pip-review'] = function (el) {
     var id = el.getAttribute('data-id'), i = el.getAttribute('data-i');

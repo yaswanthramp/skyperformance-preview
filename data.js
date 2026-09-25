@@ -182,17 +182,25 @@
   ];
   D.OFFENSE_TYPES = ['Attendance Issues', 'Violation of Company Policy', 'Substandard Work', 'Safety Violation', 'Lack of Professionalism', 'Other'];
   D.PIP_ACTIVE_MONTHS = 12;
+  /* The paper form allows five action items and four reviews. */
+  D.PIP_MAX_ACTIONS = 5;
+  D.PIP_MAX_REVIEWS = 4;
+  D.offenseText = function (x) {
+    var list = (x.offenses || []).map(function (o) { return o === 'Other' && x.offenseOther ? 'Other: ' + x.offenseOther : o; });
+    return list.length ? list.join(', ') : 'Not stated';
+  };
   D.PIPS = [
     { id: 'PIP-412', emp: 'dana', by: 'priya', level: 'written', status: 'Pending approval', site: 'CM-CH',
-      offense: 'Violation of Company Policy', opened: 'Thu 17 Sep 2026', start: 'Mon 21 Sep 2026', end: 'Mon 21 Sep 2027',
+      offenses: ['Violation of Company Policy', 'Lack of Professionalism'], offenseOther: null, opened: 'Thu 17 Sep 2026', start: 'Mon 21 Sep 2026', end: 'Mon 21 Sep 2027',
       reason: 'Due to ongoing concerns related to policy compliance, you are being placed on a Written Counseling Performance Improvement Plan. Three documented conversations about uniform and name badge have not produced sustained change.',
       evidence: ['CR-20877', 'CR-20904', 'CR-20918'],
       actions: [
-        { t: 'Arrive in full uniform with a name badge for every scheduled shift', due: 'Ongoing, reviewed weekly', done: false },
-        { t: 'Confirm uniform and badge with the charge nurse at the start of each shift for four weeks', due: 'Fri 16 Oct 2026', done: false }],
+        { t: 'Arrive in full uniform with a name badge for every scheduled shift', due: 'Ongoing, reviewed weekly', done: false, aid: null },
+        { t: 'Confirm uniform and badge with the charge nurse at the start of each shift for four weeks', due: 'Fri 16 Oct 2026', done: false, aid: null },
+        { t: 'Complete the dress code module in the learning system', due: 'Fri 9 Oct 2026', done: false, aid: null }],
       initial: { on: 'Mon 21 Sep 2026', note: null },
       reviews: [{ on: 'Fri 16 Oct 2026', note: null }, { on: 'Fri 20 Nov 2026', note: null }],
-      resolution: null, next: 'curtis',
+      resolution: null, next: 'curtis', employeeComments: null,
       approvals: [
         { who: 'priya', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Thu 17 Sep 2026 11:05' },
         { who: 'curtis', role: 'One level above, Executive Director', state: 'Waiting', on: null },
@@ -201,16 +209,17 @@
         { on: 'Thu 17 Sep 2026 10:48', who: 'priya', what: 'PIP opened at Written Counseling. Three coaching records attached automatically.' },
         { on: 'Thu 17 Sep 2026 11:05', who: 'priya', what: 'Submitted for approval and review.' }] },
     { id: 'PIP-408', emp: 'teodor', by: 'wren', level: 'first', status: 'Active', site: 'CM-SB',
-      offense: 'Attendance Issues', opened: 'Mon 21 Jul 2026', start: 'Mon 28 Jul 2026', end: 'Tue 28 Jul 2027',
+      offenses: ['Attendance Issues'], offenseOther: null, opened: 'Mon 21 Jul 2026', start: 'Mon 28 Jul 2026', end: 'Tue 28 Jul 2027',
       reason: 'Due to ongoing concerns related to attendance, you are being placed on a First Counseling Performance Improvement Plan.',
       evidence: ['CR-20880'],
       actions: [
-        { t: 'No unplanned absence for the next ninety days', due: 'Mon 26 Oct 2026', done: false },
-        { t: 'Call the charge nurse at least two hours before shift if unable to attend', due: 'Ongoing', done: true }],
+        { t: 'No unplanned absence for the next ninety days', due: 'Mon 26 Oct 2026', done: false, aid: 'AI-8894' },
+        { t: 'Call the charge nurse at least two hours before shift if unable to attend', due: 'Ongoing', done: true, aid: 'AI-8895' }],
       initial: { on: 'Mon 28 Jul 2026', note: 'Reviewed the plan with Teodor. He raised a transport issue; schedule adjusted to the later start.' },
       reviews: [{ on: 'Fri 29 Aug 2026', note: 'No occurrences since the plan started. Transport arrangement holding.' },
                 { on: 'Fri 26 Sep 2026', note: null }],
       resolution: null,
+      employeeComments: 'I accept the plan. The absences were transport related and the later start has fixed it.',
       approvals: [
         { who: 'wren', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Mon 21 Jul 2026 09:30' },
         { who: 'harriet', role: 'One level above, Executive Director', state: 'Approved', on: 'Mon 21 Jul 2026 14:10' },
@@ -219,23 +228,25 @@
               { on: 'Mon 28 Jul 2026 09:00', who: 'wren', what: 'Activated after the meeting with the employee.' },
               { on: 'Fri 29 Aug 2026 16:20', who: 'wren', what: 'First review recorded.' }] },
     { id: 'PIP-395', emp: 'esther', by: 'simone', level: 'first', status: 'Closed', site: 'CM-MC',
-      offense: 'Substandard Work', opened: 'Mon 12 May 2026', start: 'Mon 19 May 2026', end: 'Tue 19 May 2027',
+      offenses: ['Substandard Work'], offenseOther: null, opened: 'Mon 12 May 2026', start: 'Mon 19 May 2026', end: 'Tue 19 May 2027',
       reason: 'Documentation not completed before end of shift on repeated occasions.',
       evidence: [], outcome: 'Successfully completed',
-      actions: [{ t: 'Complete all charting before leaving the floor', due: 'Fri 18 Jul 2026', done: true }],
+      actions: [{ t: 'Complete all charting before leaving the floor', due: 'Fri 18 Jul 2026', done: true, aid: 'AI-8830' }],
       initial: { on: 'Mon 19 May 2026', note: 'Plan discussed and understood.' },
       reviews: [{ on: 'Fri 20 Jun 2026', note: 'Charting complete on every audited shift.' }],
       resolution: { on: 'Fri 18 Jul 2026', next: 'Successfully completed. No further action.', note: 'Sustained for eight weeks.' },
+      employeeComments: null,
       approvals: [{ who: 'simone', role: 'Initiator, Director of Nursing', state: 'Submitted', on: 'Mon 12 May 2026 10:00' },
                   { who: 'grant', role: 'HR review', state: 'Approved', on: 'Tue 13 May 2026 09:15' }],
       audit: [{ on: 'Fri 18 Jul 2026 16:00', who: 'simone', what: 'Closed as successfully completed.' }] },
     { id: 'PIP-380', emp: 'camille', by: 'ivan', level: 'final', status: 'Closed', site: 'CM-LV',
-      offense: 'Attendance Issues', opened: 'Mon 3 Feb 2026', start: 'Mon 10 Feb 2026', end: 'Tue 10 Feb 2027',
+      offenses: ['Attendance Issues'], offenseOther: null, opened: 'Mon 3 Feb 2026', start: 'Mon 10 Feb 2026', end: 'Tue 10 Feb 2027',
       reason: 'Final Written Counseling following two prior counselings on attendance.',
       evidence: [], outcome: 'Advanced to termination',
-      actions: [{ t: 'No unplanned absence for ninety days', due: 'Mon 11 May 2026', done: false }],
+      actions: [{ t: 'No unplanned absence for ninety days', due: 'Mon 11 May 2026', done: false, aid: null }],
       initial: { on: 'Mon 10 Feb 2026', note: 'Plan discussed.' },
       reviews: [{ on: 'Fri 13 Mar 2026', note: 'One further occurrence on 6 March.' }],
+      employeeComments: null,
       resolution: { on: 'Mon 11 May 2026', next: 'Advanced to termination.', note: 'Standard not sustained.' },
       termination: { supervisor: 'ivan', finalDay: 'Mon 11 May 2026', reason: 'Attendance, following a Final Written Counseling.',
         exitBy: 'grant', belongings: 'Badge and keys returned', codes: 'Door codes changed 11 May', access: 'System and email access closed 11 May' },
@@ -338,8 +349,13 @@
       from: 'SV-1182', fromKind: 'visit', due: 'Fri 25 Sep 2026', status: 'Open', site: 'CM-CH', notes: [] },
     { id: 'AI-8873', t: 'Incident reports not reaching the Regional within 24 hours. Review the process with the leadership team.',
       owner: 'curtis', by: 'alexis', from: 'SV-1182', fromKind: 'visit', due: 'Fri 25 Sep 2026', status: 'Open', site: 'CM-CH', notes: [] },
-    { id: 'AI-8880', t: 'Confirm uniform and badge with the charge nurse at the start of each shift for four weeks.',
-      owner: 'dana', by: 'priya', from: 'PIP-412', fromKind: 'pip', due: 'Fri 16 Oct 2026', status: 'Open', site: 'CM-CH', notes: [] },
+    { id: 'AI-8894', t: 'No unplanned absence for the next ninety days', owner: 'teodor', by: 'wren',
+      from: 'PIP-408', fromKind: 'pip', due: 'Mon 26 Oct 2026', status: 'Open', site: 'CM-SB', notes: [] },
+    { id: 'AI-8895', t: 'Call the charge nurse at least two hours before shift if unable to attend', owner: 'teodor', by: 'wren',
+      from: 'PIP-408', fromKind: 'pip', due: 'Ongoing', status: 'Closed', site: 'CM-SB', closedOn: 'Fri 29 Aug 2026',
+      notes: [{ on: 'Fri 29 Aug', by: 'teodor', t: 'Called ahead on both occasions since the plan started.' }] },
+    { id: 'AI-8830', t: 'Complete all charting before leaving the floor', owner: 'esther', by: 'simone',
+      from: 'PIP-395', fromKind: 'pip', due: 'Fri 18 Jul 2026', status: 'Closed', site: 'CM-MC', closedOn: 'Wed 16 Jul 2026', notes: [] },
     { id: 'AI-8885', t: 'Complete the medication technician pathway.', owner: 'lorna', by: 'priya',
       from: 'EV-2026-041', fromKind: 'eval', due: 'Fri 27 Mar 2027', status: 'Open', site: 'CM-CH', notes: [] },
     { id: 'AI-8886', t: 'Lead the clinical team huddle once a month.', owner: 'lorna', by: 'priya',

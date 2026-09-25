@@ -24,7 +24,7 @@
     });
     APP.pips().forEach(function (x) {
       out.push({ kind: APP.term('pipShort'), sub: D.pipLevel(x.level).name, id: x.id, on: x.opened, who: x.emp,
-        by: x.by, title: x.offense, site: x.site, href: '#/pips/' + x.id, ic: 'clipboard-check' });
+        by: x.by, title: D.offenseText(x), site: x.site, href: '#/pips/' + x.id, ic: 'clipboard-check' });
     });
     APP.evaluations().forEach(function (e) {
       out.push({ kind: 'Evaluation', sub: e.cycle, id: e.id, on: e.reviewDate, who: e.emp,

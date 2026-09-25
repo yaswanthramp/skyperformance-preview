@@ -164,7 +164,7 @@
       '<div class="wq">' + (approvals.length ? approvals.map(function (x) {
         return '<div class="wq-row"><span class="wq-ic is-late">' + ic('clipboard-check', 16) + '</span>' +
           '<div class="wq-main"><span class="wq-t">' + esc(P(x.emp).name) + ' · ' + esc(D.pipLevel(x.level).name) + '</span>' +
-          '<span class="wq-s">' + esc(x.offense) + ' · ' + esc(x.evidence.length) + ' records attached · ' + esc(D.siteName(x.site)) + '</span></div>' +
+          '<span class="wq-s">' + esc(D.offenseText(x)) + ' · ' + esc(x.evidence.length) + ' records attached · ' + esc(D.siteName(x.site)) + '</span></div>' +
           '<div class="wq-right">' + APP.btn('Review', 'btn-solid', null, 'data-act="goto" data-href="#/pips/' + x.id + '"', 'is-sm') + '</div></div>';
       }).join('') : '<div class="table-empty">Nothing waiting on you.</div>') + '</div></section>' +
       '<div class="stack-4">' +

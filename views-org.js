@@ -134,7 +134,7 @@
     } else if (tab === 'pips') {
       body = '<section class="card flush-card">' + APP.table([{ t: 'Plan' }, { t: 'Level' }, { t: 'Offense' }, { t: 'Opened' }, { t: 'Status' }, { t: '' }],
         pips.map(function (x) {
-          return { cells: ['<span class="cell-strong">' + esc(x.id) + '</span>', esc(D.pipLevel(x.level).name), esc(x.offense), esc(x.opened.replace(/^\w+ /, '')),
+          return { cells: ['<span class="cell-strong">' + esc(x.id) + '</span>', esc(D.pipLevel(x.level).name), esc(D.offenseText(x)), esc(x.opened.replace(/^\w+ /, '')),
             APP.statusBadge(x.outcome || x.status), APP.btn('Open', 'btn-surface', null, 'data-act="goto" data-href="#/pips/' + x.id + '"', 'is-sm')] };
         }), { empty: 'No plans on this file.' }) + '</section>';
     } else if (tab === 'evals') {

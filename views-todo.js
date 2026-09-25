@@ -117,7 +117,11 @@
   A['close-action'] = function (el) {
     var a = D.action(el.getAttribute('data-id'));
     a.status = 'Closed'; a.closedOn = D.TODAY;
+    /* An item from an improvement plan is the same thing as the ticked action on
+       the plan itself, so closing it here ticks it there. */
+    if (a.fromKind === 'pip' && APP.pipSyncFromTodo) APP.pipSyncFromTodo(a);
     APP.closeOverlay(); APP.rerender();
-    APP.toast('Marked complete', P(a.by).name.split(' ')[0] + ' will see it closed on ' + (a.fromKind === 'visit' ? 'the visit action plan.' : 'their list.'));
+    APP.toast('Marked complete', P(a.by).name.split(' ')[0] + ' will see it closed on ' +
+      (a.fromKind === 'visit' ? 'the visit action plan.' : a.fromKind === 'pip' ? 'the plan, ticked off.' : 'their list.'));
   };
 })();
